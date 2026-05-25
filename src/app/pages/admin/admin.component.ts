@@ -1,14 +1,14 @@
-import { Component, inject, signal, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
-import { MockDataService } from '../../services/mock-data.service';
-import { Court, Reservation } from '../../models/court.model';
+import {Component, computed, inject, signal} from '@angular/core';
+import {CommonModule} from '@angular/common';
+import {FormsModule} from '@angular/forms';
+import {RouterLink} from '@angular/router';
+import {MockDataService} from '../../services/mock-data.service';
+import {Court, Reservation} from '../../models/court.model';
 
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
     @if (userService.$currentUser()?.role === 'admin') {
       <section class="admin-panel">
@@ -613,14 +613,13 @@ import { Court, Reservation } from '../../models/court.model';
       <div class="access-denied">
         <h2>Acceso Denegado</h2>
         <p>No tienes permisos para acceder a esta seccion</p>
-        <a routerLink="/" class="btn btn-primary">Volver al inicio</a>
+        <a routerLink="/" class="btn btn-primary">Volver a pistas</a>
       </div>
     }
   `
 })
-export class AdminComponent {
+class AdminComponent {
   userService = inject(MockDataService);
-  private router = inject(Router);
 
   activeTab = signal<'schedule' | 'courts' | 'reservations' | 'stats'>('schedule');
   showAddCourtModal = signal(false);
@@ -861,7 +860,7 @@ export class AdminComponent {
     const amenities = this.courtForm.amenitiesInput
       .split(',')
       .map(s => s.trim())
-      .filter(s => s);
+      .filter(Boolean);
 
     const courtData = {
       name: this.courtForm.name,
@@ -922,3 +921,5 @@ export class AdminComponent {
     return status === 'paid' ? 'Pagado' : 'Pendiente';
   }
 }
+
+export default AdminComponent

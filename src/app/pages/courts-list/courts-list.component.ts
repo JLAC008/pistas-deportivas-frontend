@@ -2,7 +2,6 @@ import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { MockDataService } from '../../services/mock-data.service';
-import { Court } from '../../models/court.model';
 
 @Component({
   selector: 'app-courts-list',
@@ -75,7 +74,7 @@ import { Court } from '../../models/court.model';
                   <span class="court-players">&#128101; {{ court.maxPlayers }}</span>
                 </div>
                 @if (court.isActive) {
-                  <a [routerLink]="['/courts', court.id]" class="btn btn-primary btn-sm">Reservar</a>
+                  <a [routerLink]="['/pista', court.id]" class="btn btn-primary btn-sm">Reservar</a>
                 } @else {
                   <span class="btn btn-disabled btn-sm">No disponible</span>
                 }

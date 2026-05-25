@@ -12,7 +12,7 @@ import { EmailService } from '../../services/email.service';
     @if (court(); as c) {
       <section class="court-detail">
         <div class="court-header">
-          <a routerLink="/courts" class="back-link">&larr; Volver a pistas</a>
+          <a routerLink="/" class="back-link">&larr; Volver a pistas</a>
           <div class="court-image-large">
             <img [src]="c.image" [alt]="c.name">
             <span class="court-type-badge">{{ c.type }}</span>
@@ -190,7 +190,7 @@ import { EmailService } from '../../services/email.service';
               @if (userService.$currentUser()) {
                 <button class="btn btn-primary" (click)="goToReservations()">Ver mis reservas</button>
               } @else {
-                <button class="btn btn-primary" routerLink="/courts" (click)="closeSuccess()">Volver a pistas</button>
+                <button class="btn btn-primary" routerLink="/" (click)="closeSuccess()">Volver a pistas</button>
               }
               <button class="btn btn-outline" (click)="closeSuccess()">Cerrar</button>
             </div>
@@ -200,15 +200,15 @@ import { EmailService } from '../../services/email.service';
     } @else {
       <div class="not-found">
         <h2>Pista no encontrada</h2>
-        <a routerLink="/courts" class="btn btn-primary">Ver todas las pistas</a>
+        <a routerLink="/" class="btn btn-primary">Ver todas las pistas</a>
       </div>
     }
   `
 })
 export class CourtDetailComponent {
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-  private emailService = inject(EmailService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly emailService = inject(EmailService);
   userService = inject(MockDataService);
 
   court = computed(() => {
@@ -228,11 +228,6 @@ export class CourtDetailComponent {
   confirmedPaymentStatus = signal<'paid' | 'pending'>('pending');
 
   minDate = this.getTodayString();
-
-  private static getTodayString(): string {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  }
 
   getTodayString(): string {
     const today = new Date();

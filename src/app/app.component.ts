@@ -16,8 +16,7 @@ import { MockDataService } from './services/mock-data.service';
         </a>
 
         <nav class="nav">
-          <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Inicio</a>
-          <a routerLink="/courts" routerLinkActive="active">Pistas</a>
+          <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Pistas</a>
 
           @if (userService.$currentUser()) {
             <a routerLink="/my-reservations" routerLinkActive="active">Mis Reservas</a>
@@ -53,7 +52,7 @@ import { MockDataService } from './services/mock-data.service';
         </div>
         <div class="footer-section">
           <h4>Contacto</h4>
-          <p>info@sportreserve.com</p>
+          <p>info&#64;sportreserve.com</p>
           <p>+34 900 123 456</p>
         </div>
         <div class="footer-section">

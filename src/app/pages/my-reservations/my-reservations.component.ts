@@ -13,26 +13,26 @@ import { MockDataService } from '../../services/mock-data.service';
       <p>Historial de tus reservas de pistas</p>
     </section>
 
-    @if (user(); as u) {
+    @if (user(); ) {
       @if (reservations().length > 0) {
         <section class="reservations-section">
           <div class="reservations-tabs">
             <button
-              class="tab-btn"
-              [class.active]="activeTab() === 'upcoming'"
-              (click)="activeTab.set('upcoming')">
+                class="tab-btn"
+                [class.active]="activeTab() === 'upcoming'"
+                (click)="activeTab.set('upcoming')">
               Proximas ({{ upcomingReservations().length }})
             </button>
             <button
-              class="tab-btn"
-              [class.active]="activeTab() === 'past'"
-              (click)="activeTab.set('past')">
+                class="tab-btn"
+                [class.active]="activeTab() === 'past'"
+                (click)="activeTab.set('past')">
               Pasadas ({{ pastReservations().length }})
             </button>
             <button
-              class="tab-btn"
-              [class.active]="activeTab() === 'cancelled'"
-              (click)="activeTab.set('cancelled')">
+                class="tab-btn"
+                [class.active]="activeTab() === 'cancelled'"
+                (click)="activeTab.set('cancelled')">
               Canceladas ({{ cancelledReservations().length }})
             </button>
           </div>
@@ -61,7 +61,9 @@ import { MockDataService } from '../../services/mock-data.service';
                   </div>
                   <div class="detail-item">
                     <span class="detail-label">Duracion:</span>
-                    <span class="detail-value">{{ res.endTime - res.startTime }} hora{{ res.endTime - res.startTime > 1 ? 's' : '' }}</span>
+                    <span class="detail-value">{{ res.endTime - res.startTime }} hora{{
+                        res.endTime - res.startTime > 1 ? 's' : ''
+                      }}</span>
                   </div>
                   <div class="detail-item">
                     <span class="detail-label">Total:</span>
@@ -83,8 +85,8 @@ import { MockDataService } from '../../services/mock-data.service';
                   </span>
                   @if (res.status === 'confirmed') {
                     <button
-                      class="btn btn-outline btn-sm"
-                      (click)="cancelReservation(res.id)">
+                        class="btn btn-outline btn-sm"
+                        (click)="cancelReservation(res.id)">
                       Cancelar
                     </button>
                   }
@@ -101,7 +103,7 @@ import { MockDataService } from '../../services/mock-data.service';
         <div class="no-reservations">
           <h3>No tienes reservas aun</h3>
           <p>Explora nuestras pistas y haz tu primera reserva</p>
-          <a routerLink="/courts" class="btn btn-primary">Ver Pistas</a>
+          <a routerLink="/" class="btn btn-primary">Ver Pistas</a>
         </div>
       }
     } @else {
