@@ -1,7 +1,7 @@
 import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { MockDataService } from '../../services/mock-data.service';
+import { CourtService } from '../../services/court.service';
 
 @Component({
   selector: 'app-courts-list',
@@ -51,7 +51,7 @@ import { MockDataService } from '../../services/mock-data.service';
         @for (court of filteredCourts(); track court.id) {
           <div class="court-card" [class.inactive]="!court.isActive">
             <div class="court-image">
-              <img [src]="court.image" [alt]="court.name">
+              <img [src]="court.imageUrl || 'https://via.placeholder.com/400x300?text=Sin+Imagen'" [alt]="court.name">
               <span class="court-type">{{ court.type }}</span>
               @if (!court.isActive) {
                 <span class="inactive-badge">Inactiva</span>
@@ -91,15 +91,15 @@ import { MockDataService } from '../../services/mock-data.service';
   `
 })
 export class CourtsListComponent {
-  userService = inject(MockDataService);
+  private courtService = inject(CourtService);
 
   selectedType = signal<string>('all');
   sortBy = signal<string>('name');
 
-  courtTypes: string[] = ['tenis', 'futbol', 'padel', 'baloncesto', 'voleibol'];
+  courtTypes: string[] = ['TENIS', 'FUTBOL', 'PADEL', 'BALONCESTO', 'VOLEIBOL'];
 
   filteredCourts = computed(() => {
-    let courts = this.userService.$courts();
+    let courts = this.courtService.courts();
 
     if (this.selectedType() !== 'all') {
       courts = courts.filter(c => c.type === this.selectedType());
@@ -118,4 +118,8 @@ export class CourtsListComponent {
 
     return courts;
   });
+
+  ngOnInit() {
+    this.courtService.loadAll();
+  }
 }

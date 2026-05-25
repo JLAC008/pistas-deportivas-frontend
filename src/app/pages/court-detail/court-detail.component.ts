@@ -1,8 +1,11 @@
 import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { MockDataService } from '../../services/mock-data.service';
-import { EmailService } from '../../services/email.service';
+import { CourtService } from '../../services/court.service';
+import { ReservationService } from '../../services/reservation.service';
+import { PaymentService } from '../../services/payment.service';
+import { AuthService } from '../../services/auth.service';
+import { Court, TimeSlot } from '../../models/court.model';
 
 @Component({
   selector: 'app-court-detail',
@@ -14,7 +17,7 @@ import { EmailService } from '../../services/email.service';
         <div class="court-header">
           <a routerLink="/" class="back-link">&larr; Volver a pistas</a>
           <div class="court-image-large">
-            <img [src]="c.image" [alt]="c.name">
+            <img [src]="c.imageUrl || 'https://via.placeholder.com/800x400?text=Sin+Imagen'" [alt]="c.name">
             <span class="court-type-badge">{{ c.type }}</span>
           </div>
           <div class="court-title-section">
@@ -55,7 +58,7 @@ import { EmailService } from '../../services/email.service';
                   class="input"
                   [min]="minDate"
                   [value]="selectedDate()"
-                  (input)="selectedDate.set($any($event.target).value)">
+                  (input)="onDateChange($any($event.target).value)">
               </div>
 
               @if (availableSlots().length > 0) {
@@ -95,77 +98,71 @@ import { EmailService } from '../../services/email.service';
                 <div class="form-group">
                   <label>Forma de pago:</label>
                   <div class="payment-options">
-                    <label class="payment-option" [class.selected]="paymentMethod() === 'onsite'">
+                    <label class="payment-option" [class.selected]="paymentMethod() === 'ONSITE'">
                       <input
                         type="radio"
                         name="paymentMethod"
-                        value="onsite"
-                        [checked]="paymentMethod() === 'onsite'"
-                        (change)="paymentMethod.set('onsite')">
+                        value="ONSITE"
+                        [checked]="paymentMethod() === 'ONSITE'"
+                        (change)="paymentMethod.set('ONSITE')">
                       <span>
                         <strong>Pagar en el local</strong>
                         <small>Reserva ahora y paga al llegar</small>
                       </span>
                     </label>
-                    <label class="payment-option" [class.selected]="paymentMethod() === 'online'">
+                    <label class="payment-option" [class.selected]="paymentMethod() === 'ONLINE'">
                       <input
                         type="radio"
                         name="paymentMethod"
-                        value="online"
-                        [checked]="paymentMethod() === 'online'"
-                        (change)="paymentMethod.set('online')">
+                        value="ONLINE"
+                        [checked]="paymentMethod() === 'ONLINE'"
+                        (change)="paymentMethod.set('ONLINE')">
                       <span>
                         <strong>Pagar online</strong>
-                        <small>Pago simulado en esta demo</small>
+                        <small>Pago con tarjeta via Redsys</small>
                       </span>
                     </label>
                   </div>
                 </div>
 
-                @if (userService.$currentUser(); as user) {
-                  <div class="booking-contact">
-                    <p class="contact-label">Reserva como</p>
-                    <p class="contact-value">{{ user.name }} · {{ user.email }}</p>
+                <div class="guest-booking">
+                  <div class="form-group">
+                    <label for="guest-name">Nombre completo:</label>
+                    <input
+                      type="text"
+                      id="guest-name"
+                      class="input"
+                      [value]="customerName()"
+                      (input)="customerName.set($any($event.target).value)"
+                      placeholder="Tu nombre"
+                      required>
                   </div>
-                  <button
-                    class="btn btn-primary btn-lg btn-block"
-                    [disabled]="!canBook() || isBooking()"
-                    (click)="makeReservation()">
-                    @if (isBooking()) {
-                      Reservando...
-                    } @else {
-                      Confirmar Reserva
+                  <div class="form-group">
+                    <label for="guest-email">Email para la reserva:</label>
+                    <input
+                      type="email"
+                      id="guest-email"
+                      class="input"
+                      [value]="customerEmail()"
+                      (input)="customerEmail.set($any($event.target).value)"
+                      placeholder="tu@email.com"
+                      required>
+                    @if (customerEmail().trim() && !isValidEmail()) {
+                      <p class="form-error">Introduce un email valido</p>
                     }
-                  </button>
-                } @else {
-                  <div class="guest-booking">
-                    <div class="form-group">
-                      <label for="guest-email">Email para la reserva:</label>
-                      <input
-                        type="email"
-                        id="guest-email"
-                        class="input"
-                        [value]="guestEmail()"
-                        (input)="guestEmail.set($any($event.target).value)"
-                        placeholder="tu@email.com"
-                        required>
-                      @if (guestEmail().trim() && !isValidGuestEmail()) {
-                        <p class="form-error">Introduce un email valido</p>
-                      }
-                    </div>
-                    <button
-                      class="btn btn-primary btn-lg btn-block"
-                      [disabled]="!canBook() || isBooking()"
-                      (click)="makeReservation()">
-                      @if (isBooking()) {
-                        Reservando...
-                      } @else {
-                        Confirmar Reserva
-                      }
-                    </button>
-                    <p class="guest-note">Tambien puedes <a routerLink="/login">iniciar sesion</a> para guardar la reserva en tu cuenta.</p>
                   </div>
-                }
+                </div>
+
+                <button
+                  class="btn btn-primary btn-lg btn-block"
+                  [disabled]="!canBook() || isBooking()"
+                  (click)="makeReservation()">
+                  @if (isBooking()) {
+                    Reservando...
+                  } @else {
+                    Confirmar Reserva
+                  }
+                </button>
               } @else {
                 <p class="no-slots">Selecciona una fecha para ver los horarios disponibles</p>
               }
@@ -181,18 +178,16 @@ import { EmailService } from '../../services/email.service';
               <p>Tu reserva ha sido creada exitosamente</p>
               <div class="success-details">
                 <p><strong>Pista:</strong> {{ c.name }}</p>
-                <p><strong>Fecha:</strong> {{ selectedDate() | date:'fullDate' }}</p>
+                <p><strong>Fecha:</strong> {{ selectedDate() }}</p>
                 <p><strong>Hora:</strong> {{ formatTime(selectedSlots()[0]) }} - {{ formatTime(selectedSlots()[selectedSlots().length - 1] + 1) }}</p>
-                <p><strong>Email:</strong> {{ reservationEmail() }}</p>
-                <p><strong>Pago:</strong> {{ paymentMethodLabel() }} - {{ paymentStatusLabel() }}</p>
+                <p><strong>Email:</strong> {{ customerEmail() }}</p>
+                <p><strong>Pago:</strong> {{ paymentMethodLabel() }}</p>
               </div>
-              <p class="email-confirmation-note">{{ emailStatusMessage() }}</p>
-              @if (userService.$currentUser()) {
-                <button class="btn btn-primary" (click)="goToReservations()">Ver mis reservas</button>
-              } @else {
-                <button class="btn btn-primary" routerLink="/" (click)="closeSuccess()">Volver a pistas</button>
+              @if (paymentMethod() === 'ONLINE') {
+                <p class="email-confirmation-note">Redirigiendo a la pasarela de pago...</p>
+                <button class="btn btn-primary" (click)="redirectToPayment()">Ir a pagar ahora</button>
               }
-              <button class="btn btn-outline" (click)="closeSuccess()">Cerrar</button>
+              <button class="btn btn-outline" routerLink="/" (click)="closeSuccess()">Volver a pistas</button>
             </div>
           </div>
         }
@@ -208,24 +203,21 @@ import { EmailService } from '../../services/email.service';
 export class CourtDetailComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-  private readonly emailService = inject(EmailService);
-  userService = inject(MockDataService);
+  private readonly courtService = inject(CourtService);
+  private readonly reservationService = inject(ReservationService);
+  private readonly paymentService = inject(PaymentService);
 
-  court = computed(() => {
-    const id = this.route.snapshot.paramMap.get('id');
-    return id ? this.userService.getCourtById(id) : undefined;
-  });
-
+  court = signal<Court | null>(null);
   selectedDate = signal<string>(this.getTodayString());
   selectedSlots = signal<number[]>([]);
   isBooking = signal(false);
   showSuccess = signal(false);
-  guestEmail = signal('');
-  reservationEmail = signal('');
-  emailStatusMessage = signal('');
-  paymentMethod = signal<'online' | 'onsite'>('onsite');
-  confirmedPaymentMethod = signal<'online' | 'onsite'>('onsite');
-  confirmedPaymentStatus = signal<'paid' | 'pending'>('pending');
+  customerName = signal('');
+  customerEmail = signal('');
+  paymentMethod = signal<'ONLINE' | 'ONSITE'>('ONSITE');
+  availableSlots = signal<TimeSlot[]>([]);
+  createdReservationId = signal<string | null>(null);
+  loadingCourt = signal(true);
 
   minDate = this.getTodayString();
 
@@ -233,15 +225,6 @@ export class CourtDetailComponent {
     const today = new Date();
     return today.toISOString().split('T')[0];
   }
-
-  availableSlots = computed(() => {
-    const court = this.court();
-    const dateStr = this.selectedDate();
-    if (!court || !dateStr) return [];
-
-    const date = new Date(dateStr);
-    return this.userService.getAvailableSlots(court.id, date);
-  });
 
   totalPrice = computed(() => {
     const court = this.court();
@@ -251,8 +234,37 @@ export class CourtDetailComponent {
 
   canBook = computed(() => {
     if (this.selectedSlots().length === 0) return false;
-    return this.userService.$currentUser() ? true : this.isValidGuestEmail();
+    return this.isValidEmail();
   });
+
+  ngOnInit() {
+    const id = this.route.snapshot.paramMap.get('id');
+    if (id) {
+      this.loadingCourt.set(true);
+      this.courtService.getById(id).subscribe({
+        next: court => {
+          this.court.set(court);
+          this.loadingCourt.set(false);
+          this.loadAvailability();
+        },
+        error: () => this.loadingCourt.set(false)
+      });
+    }
+  }
+
+  onDateChange(date: string): void {
+    this.selectedDate.set(date);
+    this.selectedSlots.set([]);
+    this.loadAvailability();
+  }
+
+  private loadAvailability(): void {
+    const court = this.court();
+    if (!court || !this.selectedDate()) return;
+    this.courtService.getAvailability(court.id, this.selectedDate()).subscribe({
+      next: res => this.availableSlots.set(res.slots)
+    });
+  }
 
   isSlotSelected(hour: number): boolean {
     return this.selectedSlots().includes(hour);
@@ -266,7 +278,6 @@ export class CourtDetailComponent {
       this.selectedSlots.set(slots.filter(s => s !== hour));
     } else {
       const newSlots = [...slots, hour].sort((a, b) => a - b);
-      // Check if slots are consecutive
       let consecutive = true;
       for (let i = 1; i < newSlots.length; i++) {
         if (newSlots[i] - newSlots[i-1] !== 1) {
@@ -282,81 +293,66 @@ export class CourtDetailComponent {
     return `${hour.toString().padStart(2, '0')}:00`;
   }
 
-  isValidGuestEmail(): boolean {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.guestEmail().trim());
+  isValidEmail(): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.customerEmail().trim());
   }
 
-  async makeReservation(): Promise<void> {
+  makeReservation(): void {
     const court = this.court();
-    const user = this.userService.$currentUser();
-    if (!court || !this.canBook()) return;
-
-    const guestEmail = this.guestEmail().trim();
-    const reservationUser = user
-      ? {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          isGuest: false
-        }
-      : {
-          id: `guest:${guestEmail.toLowerCase()}`,
-          name: 'Invitado',
-          email: guestEmail,
-          isGuest: true
-        };
+    if (!court) return;
 
     this.isBooking.set(true);
 
-    // Simulate API/payment delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    const selectedPaymentMethod = this.paymentMethod();
-    const paymentStatus = selectedPaymentMethod === 'online' ? 'paid' : 'pending';
+    this.reservationService.create({
+      courtId: court.id,
+      customerName: this.customerName().trim(),
+      customerEmail: this.customerEmail().trim(),
+      date: this.selectedDate(),
+      startTime: this.selectedSlots()[0],
+      endTime: this.selectedSlots()[this.selectedSlots().length - 1] + 1,
+      paymentMethod: this.paymentMethod()
+    }).subscribe({
+      next: (reservation) => {
+        this.createdReservationId.set(reservation.id);
+        this.isBooking.set(false);
+        this.showSuccess.set(true);
+      },
+      error: () => {
+        this.isBooking.set(false);
+      }
+    });
+  }
 
-    const reservation = this.userService.createReservation(
-      court.id,
-      new Date(this.selectedDate()),
-      this.selectedSlots()[0],
-      this.selectedSlots()[this.selectedSlots().length - 1] + 1,
-      reservationUser.id,
-      reservationUser.name,
-      reservationUser.email,
-      reservationUser.isGuest,
-      selectedPaymentMethod,
-      paymentStatus
-    );
+  redirectToPayment(): void {
+    const id = this.createdReservationId();
+    if (!id) return;
+    this.paymentService.initiate(id).subscribe({
+      next: (payment) => {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = payment.url;
+        form.style.display = 'none';
 
-    this.isBooking.set(false);
+        const addField = (name: string, value: string) => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = name;
+          input.value = value;
+          form.appendChild(input);
+        };
 
-    if (reservation) {
-      this.sendReservationEmails(reservation);
-      this.reservationEmail.set(reservation.userEmail);
-      this.confirmedPaymentMethod.set(reservation.paymentMethod);
-      this.confirmedPaymentStatus.set(reservation.paymentStatus);
-      this.showSuccess.set(true);
-    }
+        addField('Ds_SignatureVersion', payment.dsSignatureVersion);
+        addField('Ds_MerchantParameters', payment.dsMerchantParameters);
+        addField('Ds_Signature', payment.dsSignature);
+
+        document.body.appendChild(form);
+        form.submit();
+      }
+    });
   }
 
   paymentMethodLabel(): string {
-    return this.confirmedPaymentMethod() === 'online' ? 'Pagado online' : 'Pago en el local';
-  }
-
-  paymentStatusLabel(): string {
-    return this.confirmedPaymentStatus() === 'paid' ? 'Pagado' : 'Pendiente';
-  }
-
-  private sendReservationEmails(reservation: NonNullable<ReturnType<MockDataService['createReservation']>>): void {
-    try {
-      this.emailService.sendReservationConfirmation(reservation);
-      this.emailStatusMessage.set(`Confirmacion preparada para ${reservation.userEmail}`);
-    } catch (error) {
-      console.error('No se pudo preparar el email simulado', error);
-      this.emailStatusMessage.set('Reserva creada. No se pudo preparar la confirmacion por email.');
-    }
-  }
-
-  goToReservations(): void {
-    this.router.navigate(['/my-reservations']);
+    return this.paymentMethod() === 'ONLINE' ? 'Pago online' : 'Pago en el local';
   }
 
   closeSuccess(): void {
