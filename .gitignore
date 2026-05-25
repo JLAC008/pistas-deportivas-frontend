@@ -63,4 +63,7 @@ test-results/
 
 # Bolt configuration
 /.bolt/
+
+# Dokploy deployment configuration
+netlify.toml
 /pnpm-lock.yaml
