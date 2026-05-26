@@ -1,44 +1,38 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
-import { MockDataService } from './services/mock-data.service';
+import { AuthService } from './services/auth.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
   imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
   template: `
-    <header class="header">
-      <div class="header-content">
-        <a routerLink="/" class="logo">
-          <span class="logo-icon">&#127812;</span>
-          <span class="logo-text">Valle Perdido Sport</span>
-        </a>
+     <header class="header">
+       <div class="header-content">
+         <a routerLink="/" class="logo">
+           <span class="logo-icon">&#127812;</span>
+           <span class="logo-text">Valle Perdido Sport</span>
+         </a>
 
-        <nav class="nav">
-          <a routerLink="/courts" routerLinkActive="active">Pistas</a>
+           <nav class="nav">
+             @if (authService.isLoggedIn()) {
+               <a routerLink="/admin" routerLinkActive="active">Admin</a>
+             }
+           </nav>
 
-          @if (userService.$currentUser()) {
-            <a routerLink="/my-reservations" routerLinkActive="active">Mis Reservas</a>
-            @if (userService.$currentUser()?.role === 'admin') {
-              <a routerLink="/admin" routerLinkActive="active">Admin</a>
-            }
-          }
-        </nav>
-
-        <div class="user-section">
-          @if (userService.$currentUser(); as user) {
-            <div class="user-info">
-              <img [src]="user.avatar || 'https://via.placeholder.com/40'" [alt]="user.name" class="user-avatar">
-              <span class="user-name">{{ user.name }}</span>
-              <button class="btn btn-outline btn-sm" (click)="logout()">Salir</button>
-            </div>
-          } @else {
-            <a routerLink="/login" class="btn btn-primary">Iniciar Sesion</a>
-          }
-        </div>
-      </div>
-    </header>
+         <div class="user-section">
+           @if (authService.isLoggedIn()) {
+             <div class="user-info">
+               <span class="user-name">Administrador</span>
+               <button class="btn btn-outline btn-sm" (click)="logout()">Salir</button>
+             </div>
+           } @else {
+             <a routerLink="/login" class="btn btn-primary btn-sm">Iniciar Sesion</a>
+           }
+         </div>
+       </div>
+     </header>
 
     <main class="main-content">
       <router-outlet></router-outlet>
@@ -52,7 +46,7 @@ import { MockDataService } from './services/mock-data.service';
         </div>
         <div class="footer-section">
           <h4>Contacto</h4>
-          <p>info@valleperdidosport.com</p>
+          <p>info&#64;valleperdidosport.com</p>
           <p>+34 900 123 456</p>
         </div>
         <div class="footer-section">
@@ -67,9 +61,9 @@ import { MockDataService } from './services/mock-data.service';
   `
 })
 export class App {
-  userService = inject(MockDataService);
+  authService = inject(AuthService);
 
   logout(): void {
-    this.userService.logout();
+    this.authService.logout();
   }
 }

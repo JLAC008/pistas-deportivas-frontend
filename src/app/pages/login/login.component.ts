@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { MockDataService } from '../../services/mock-data.service';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -13,19 +13,19 @@ import { MockDataService } from '../../services/mock-data.service';
       <div class="auth-card">
         <div class="auth-header">
           <h1>Iniciar Sesion</h1>
-          <p>Accede a tu cuenta para reservar pistas</p>
+          <p>Accede al panel de administracion</p>
         </div>
 
         <form class="auth-form" (ngSubmit)="onSubmit()">
           <div class="form-group">
-            <label for="email">Email</label>
+            <label for="username">Usuario</label>
             <input
-              type="email"
-              id="email"
+              type="text"
+              id="username"
               class="input"
-              [(ngModel)]="email"
-              name="email"
-              placeholder="tu@email.com"
+              [(ngModel)]="username"
+              name="username"
+              placeholder="admin"
               required>
           </div>
 
@@ -58,12 +58,9 @@ import { MockDataService } from '../../services/mock-data.service';
 
         <div class="auth-footer">
           <div class="demo-credentials">
-            <p class="demo-title">Usuarios de prueba:</p>
+            <p class="demo-title">Credenciales de prueba:</p>
             <div class="demo-user">
-              <p><strong>Admin:</strong> admin@sports.com / admin</p>
-            </div>
-            <div class="demo-user">
-              <p><strong>Usuario:</strong> cualquier email / contrasena</p>
+              <p><strong>Admin:</strong> admin / admin123</p>
             </div>
           </div>
         </div>
@@ -73,15 +70,15 @@ import { MockDataService } from '../../services/mock-data.service';
 })
 export class LoginComponent {
   private router = inject(Router);
-  private userService = inject(MockDataService);
+  private authService = inject(AuthService);
 
-  email = '';
+  username = '';
   password = '';
   isLoading = signal(false);
   error = signal('');
 
-  async onSubmit(): Promise<void> {
-    if (!this.email || !this.password) {
+  onSubmit(): void {
+    if (!this.username || !this.password) {
       this.error.set('Por favor, completa todos los campos');
       return;
     }
@@ -89,18 +86,16 @@ export class LoginComponent {
     this.isLoading.set(true);
     this.error.set('');
 
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    const success = this.userService.login(this.email, this.password);
-
-    this.isLoading.set(false);
-
-    if (success) {
-      const returnUrl = this.router.getCurrentNavigation()?.extras.queryParams?.['returnUrl'] || '/';
-      this.router.navigateByUrl(returnUrl);
-    } else {
-      this.error.set('Credenciales incorrectas');
-    }
+    this.authService.login(this.username, this.password).subscribe({
+      next: () => {
+        this.isLoading.set(false);
+        const returnUrl = this.router.parseUrl(this.router.url).queryParams['returnUrl'] || '/admin';
+        this.router.navigateByUrl(returnUrl);
+      },
+      error: () => {
+        this.isLoading.set(false);
+        this.error.set('Credenciales incorrectas');
+      }
+    });
   }
 }
