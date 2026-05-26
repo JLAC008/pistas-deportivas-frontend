@@ -1,7 +1,8 @@
 import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { CourtService } from '../../services/court.service';
+import { MockDataService } from '../../services/mock-data.service';
+import { Court } from '../../models/court.model';
 
 @Component({
   selector: 'app-courts-list',
@@ -9,11 +10,22 @@ import { CourtService } from '../../services/court.service';
   imports: [CommonModule, RouterLink],
   template: `
     <section class="page-header">
-      <h1>Nuestras Pistas</h1>
-      <p>Encuentra la pista perfecta para tu deporte favorito</p>
+      <div class="page-header-content">
+        <div class="page-kicker">
+          <span>&#127812;</span>
+          Valle Perdido, Murcia
+        </div>
+        <h1>Alquiler de pistas deportivas</h1>
+        <p>Elige pista, compara precio y reserva tu horario en un centro deportivo moderno rodeado de naturaleza.</p>
+        <div class="page-header-stats">
+          <span><strong>{{ userService.$courts().length }}</strong> pistas</span>
+          <span><strong>20&#8364;</strong> desde</span>
+          <span><strong>24/7</strong> online</span>
+        </div>
+      </div>
     </section>
 
-    <section class="filters">
+    <section class="filters courts-filters">
       <div class="filter-group">
         <label>Tipo de pista:</label>
         <div class="filter-buttons">
@@ -51,7 +63,7 @@ import { CourtService } from '../../services/court.service';
         @for (court of filteredCourts(); track court.id) {
           <div class="court-card" [class.inactive]="!court.isActive">
             <div class="court-image">
-              <img [src]="court.imageUrl || 'https://via.placeholder.com/400x300?text=Sin+Imagen'" [alt]="court.name">
+              <img [src]="court.image" [alt]="court.name">
               <span class="court-type">{{ court.type }}</span>
               @if (!court.isActive) {
                 <span class="inactive-badge">Inactiva</span>
@@ -74,7 +86,7 @@ import { CourtService } from '../../services/court.service';
                   <span class="court-players">&#128101; {{ court.maxPlayers }}</span>
                 </div>
                 @if (court.isActive) {
-                  <a [routerLink]="['/pista', court.id]" class="btn btn-primary btn-sm">Reservar</a>
+                  <a [routerLink]="['/courts', court.id]" class="btn btn-primary btn-sm">Reservar</a>
                 } @else {
                   <span class="btn btn-disabled btn-sm">No disponible</span>
                 }
@@ -91,15 +103,15 @@ import { CourtService } from '../../services/court.service';
   `
 })
 export class CourtsListComponent {
-  private courtService = inject(CourtService);
+  userService = inject(MockDataService);
 
   selectedType = signal<string>('all');
   sortBy = signal<string>('name');
 
-  courtTypes: string[] = ['TENIS', 'FUTBOL', 'PADEL', 'BALONCESTO', 'VOLEIBOL'];
+  courtTypes: string[] = ['tenis', 'futbol', 'padel', 'baloncesto', 'voleibol'];
 
   filteredCourts = computed(() => {
-    let courts = this.courtService.courts();
+    let courts = this.userService.$courts();
 
     if (this.selectedType() !== 'all') {
       courts = courts.filter(c => c.type === this.selectedType());
@@ -118,8 +130,4 @@ export class CourtsListComponent {
 
     return courts;
   });
-
-  ngOnInit() {
-    this.courtService.loadAll();
-  }
 }
