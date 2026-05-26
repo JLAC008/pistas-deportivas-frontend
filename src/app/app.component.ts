@@ -1,38 +1,47 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet, RouterLink, RouterLinkActive } from '@angular/router';
+import { RouterOutlet, RouterLink } from '@angular/router';
 import { AuthService } from './services/auth.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [CommonModule, RouterOutlet, RouterLink],
   template: `
-     <header class="header">
-       <div class="header-content">
-         <a routerLink="/" class="logo">
-           <span class="logo-icon">&#127812;</span>
-           <span class="logo-text">Valle Perdido Sport</span>
-         </a>
+    <header class="header">
+      <div class="header-content">
+        <a routerLink="/" class="logo">
+          <span class="logo-icon">&#127812;</span>
+          <span class="logo-text">Valle Perdido Sport</span>
+        </a>
 
-           <nav class="nav">
-             @if (authService.isLoggedIn()) {
-               <a routerLink="/admin" routerLinkActive="active">Admin</a>
-             }
-           </nav>
-
-         <div class="user-section">
-           @if (authService.isLoggedIn()) {
-             <div class="user-info">
-               <span class="user-name">Administrador</span>
-               <button class="btn btn-outline btn-sm" (click)="logout()">Salir</button>
-             </div>
-           } @else {
-             <a routerLink="/login" class="btn btn-primary btn-sm">Iniciar Sesion</a>
-           }
-         </div>
-       </div>
-     </header>
+        <div class="user-section">
+          @if (authService.isLoggedIn()) {
+            <div class="avatar-wrapper">
+              <button
+                class="avatar-btn"
+                (click)="toggleAvatar($event)"
+                [attr.aria-expanded]="avatarOpen()"
+                aria-haspopup="true">
+                <span class="avatar-emoji">&#128100;</span>
+                <span class="avatar-name">Admin</span>
+                <span class="avatar-chevron" [class.open]="avatarOpen()">&#8964;</span>
+              </button>
+              @if (avatarOpen()) {
+                <div class="user-dropdown">
+                  <a routerLink="/admin" class="dropdown-item" (click)="avatarOpen.set(false)">
+                    Panel Admin
+                  </a>
+                  <button class="dropdown-item danger" (click)="logout()">
+                    Salir
+                  </button>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    </header>
 
     <main class="main-content">
       <router-outlet></router-outlet>
@@ -55,15 +64,28 @@ import { AuthService } from './services/auth.service';
         </div>
       </div>
       <div class="footer-bottom">
-        <p>&copy; 2024 Valle Perdido Sport. Todos los derechos reservados.</p>
+        <p>&copy; {{ currentYear }} Valle Perdido Sport. Todos los derechos reservados.</p>
       </div>
     </footer>
   `
 })
 export class App {
   authService = inject(AuthService);
+  avatarOpen = signal(false);
+  readonly currentYear = new Date().getFullYear();
+
+  toggleAvatar(event: Event): void {
+    event.stopPropagation();
+    this.avatarOpen.update(v => !v);
+  }
+
+  @HostListener('document:click')
+  closeAvatar(): void {
+    this.avatarOpen.set(false);
+  }
 
   logout(): void {
+    this.avatarOpen.set(false);
     this.authService.logout();
   }
 }

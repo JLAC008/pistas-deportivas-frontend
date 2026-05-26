@@ -67,3 +67,4 @@ test-results/
 # Dokploy deployment configuration
 netlify.toml
 /pnpm-lock.yaml
+package-lock.json

@@ -16,11 +16,8 @@ import { Court, TimeSlot } from '../../models/court.model';
       <section class="court-detail">
         <div class="court-header">
           <a routerLink="/" class="back-link">
-            <span class="back-link-icon">&#8592;</span>
-            <span>
-              <small>Catalogo</small>
-              Volver a pistas
-            </span>
+            <span class="back-link-arrow">&#8592;</span>
+            Volver a pistas
           </a>
           <div class="court-image-large">
             <img [src]="c.imageUrl || 'https://via.placeholder.com/800x400?text=Sin+Imagen'" [alt]="c.name">
@@ -32,9 +29,6 @@ import { Court, TimeSlot } from '../../models/court.model';
             <div class="court-quick-info">
               <span class="info-item">
                 <strong>Precio:</strong> {{ c.pricePerHour }}&#8364;/hora
-              </span>
-              <span class="info-item">
-                <strong>Jugadores:</strong> hasta {{ c.maxPlayers }}
               </span>
               <span class="info-item" [class.inactive-status]="!c.isActive">
                 <strong>Estado:</strong> {{ c.isActive ? 'Disponible' : 'Inactiva' }}
@@ -104,71 +98,83 @@ import { Court, TimeSlot } from '../../models/court.model';
                 <div class="form-group">
                   <label>Forma de pago:</label>
                   <div class="payment-options">
-                    <label class="payment-option" [class.selected]="paymentMethod() === 'ONSITE'">
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="ONSITE"
-                        [checked]="paymentMethod() === 'ONSITE'"
-                        (change)="paymentMethod.set('ONSITE')">
-                      <span>
-                        <strong>Pagar en el local</strong>
-                        <small>Reserva ahora y paga al llegar</small>
-                      </span>
-                    </label>
-                    <label class="payment-option" [class.selected]="paymentMethod() === 'ONLINE'">
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="ONLINE"
-                        [checked]="paymentMethod() === 'ONLINE'"
-                        (change)="paymentMethod.set('ONLINE')">
+                    <div class="payment-option" [class.selected]="paymentMethod() === 'ONLINE'" (click)="paymentMethod.set('ONLINE')">
                       <span>
                         <strong>Pagar online</strong>
                         <small>Pago con tarjeta via Redsys</small>
                       </span>
-                    </label>
+                    </div>
+                    <div class="payment-option" [class.selected]="paymentMethod() === 'ONSITE'" (click)="paymentMethod.set('ONSITE')">
+                      <span>
+                        <strong>Pagar en el local</strong>
+                        <small>Reserva ahora y paga al llegar</small>
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <div class="guest-booking">
-                  <div class="form-group">
-                    <label for="guest-name">Nombre completo:</label>
-                    <input
-                      type="text"
-                      id="guest-name"
-                      class="input"
-                      [value]="customerName()"
-                      (input)="customerName.set($any($event.target).value)"
-                      placeholder="Tu nombre"
-                      required>
+                @if (paymentMethod() === 'ONLINE') {
+                  <div class="guest-booking">
+                    <div class="form-group">
+                      <label for="guest-name">Nombre completo:</label>
+                      <input
+                        type="text"
+                        id="guest-name"
+                        class="input"
+                        [value]="customerName()"
+                        (input)="customerName.set($any($event.target).value)"
+                        placeholder="Tu nombre"
+                        required>
+                    </div>
+                    <div class="form-group">
+                      <label for="guest-phone">Teléfono de contacto:</label>
+                      <input
+                        type="tel"
+                        inputmode="numeric"
+                        id="guest-phone"
+                        class="input"
+                        [value]="customerPhone()"
+                        (input)="onPhoneInput($event)"
+                        placeholder="Tu teléfono"
+                        required>
+                    </div>
+                    <div class="form-group">
+                      <label for="guest-email">Email para la reserva:</label>
+                      <input
+                        type="email"
+                        id="guest-email"
+                        class="input"
+                        [value]="customerEmail()"
+                        (input)="customerEmail.set($any($event.target).value)"
+                        placeholder="tu@email.com"
+                        required>
+                      @if (customerEmail().trim() && !isValidEmail()) {
+                        <p class="form-error">Introduce un email valido</p>
+                      }
+                    </div>
                   </div>
-                  <div class="form-group">
-                    <label for="guest-email">Email para la reserva:</label>
-                    <input
-                      type="email"
-                      id="guest-email"
-                      class="input"
-                      [value]="customerEmail()"
-                      (input)="customerEmail.set($any($event.target).value)"
-                      placeholder="tu@email.com"
-                      required>
-                    @if (customerEmail().trim() && !isValidEmail()) {
-                      <p class="form-error">Introduce un email valido</p>
+
+                  <button
+                    class="btn btn-primary btn-lg btn-block"
+                    [disabled]="!canBook() || isBooking()"
+                    (click)="makeReservation()">
+                    @if (isBooking()) {
+                      Reservando...
+                    } @else {
+                      Confirmar Reserva
                     }
-                  </div>
-                </div>
+                  </button>
+                }
 
-                <button
-                  class="btn btn-primary btn-lg btn-block"
-                  [disabled]="!canBook() || isBooking()"
-                  (click)="makeReservation()">
-                  @if (isBooking()) {
-                    Reservando...
-                  } @else {
-                    Confirmar Reserva
-                  }
-                </button>
+                @if (paymentMethod() === 'ONSITE') {
+                  <div class="onsite-notice">
+                    <div class="onsite-notice-icon">🏢</div>
+                    <div>
+                      <strong>Pago en persona</strong>
+                      <p>Deberás acudir a nuestras instalaciones para formalizar el pago en el momento de tu reserva. El equipo te atenderá a tu llegada.</p>
+                    </div>
+                  </div>
+                }
               } @else {
                 <p class="no-slots">Selecciona una fecha para ver los horarios disponibles</p>
               }
@@ -219,8 +225,9 @@ export class CourtDetailComponent {
   isBooking = signal(false);
   showSuccess = signal(false);
   customerName = signal('');
+  customerPhone = signal('');
   customerEmail = signal('');
-  paymentMethod = signal<'ONLINE' | 'ONSITE'>('ONSITE');
+  paymentMethod = signal<'ONLINE' | 'ONSITE'>('ONLINE');
   availableSlots = signal<TimeSlot[]>([]);
   createdReservationId = signal<string | null>(null);
   loadingCourt = signal(true);
@@ -240,7 +247,8 @@ export class CourtDetailComponent {
 
   canBook = computed(() => {
     if (this.selectedSlots().length === 0) return false;
-    return this.isValidEmail();
+    if (this.paymentMethod() === 'ONSITE') return true;
+    return this.isValidEmail() && this.customerName().trim().length > 0 && this.customerPhone().trim().length > 0;
   });
 
   ngOnInit() {
@@ -262,6 +270,13 @@ export class CourtDetailComponent {
     this.selectedDate.set(date);
     this.selectedSlots.set([]);
     this.loadAvailability();
+  }
+
+  onPhoneInput(event: Event): void {
+    const inputElement = event.target as HTMLInputElement;
+    const numericValue = inputElement.value.replace(/[^0-9]/g, '');
+    inputElement.value = numericValue; // Force the DOM to reflect only numbers
+    this.customerPhone.set(numericValue);
   }
 
   private loadAvailability(): void {
@@ -309,10 +324,13 @@ export class CourtDetailComponent {
 
     this.isBooking.set(true);
 
+    const isOnsite = this.paymentMethod() === 'ONSITE';
+
     this.reservationService.create({
       courtId: court.id,
-      customerName: this.customerName().trim(),
-      customerEmail: this.customerEmail().trim(),
+      customerName: isOnsite ? 'Presencial' : this.customerName().trim(),
+      customerEmail: isOnsite ? 'presencial@valleperdidosport.com' : this.customerEmail().trim(),
+      customerPhone: isOnsite ? '' : this.customerPhone().trim(),
       date: this.selectedDate(),
       startTime: this.selectedSlots()[0],
       endTime: this.selectedSlots()[this.selectedSlots().length - 1] + 1,

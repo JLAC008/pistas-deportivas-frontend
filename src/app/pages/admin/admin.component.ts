@@ -7,6 +7,13 @@ import {CourtService} from '../../services/court.service';
 import {ReservationService} from '../../services/reservation.service';
 import {Court, Reservation} from '../../models/court.model';
 
+interface AdminBookingSlot {
+  courtId: string;
+  courtName: string;
+  hour: number;
+  date: string;
+}
+
 @Component({
   selector: 'app-admin',
   standalone: true,
@@ -15,8 +22,11 @@ import {Court, Reservation} from '../../models/court.model';
     @if (authService.isLoggedIn()) {
       <section class="admin-panel">
         <div class="admin-header">
-          <h1>Panel de Administracion</h1>
-          <p>Gestiona pistas, reservas y configuracion</p>
+          <span class="admin-header-kicker">Panel de Administracion</span>
+          <div class="admin-header-meta">
+            <span>{{ activeCourtsCount() }} pistas activas</span>
+            <span>{{ reservationService.reservations().length }} reservas</span>
+          </div>
         </div>
 
         <div class="admin-tabs">
@@ -128,7 +138,7 @@ import {Court, Reservation} from '../../models/court.model';
                               [class.paid]="reservation.paymentStatus === 'PAID'"
                               [class.pending]="reservation.paymentStatus === 'PENDING'"
                               [class.completed]="reservation.status === 'COMPLETED'"
-                              (click)="selectedReservation.set(reservation)">
+                              (click)="selectReservation(reservation)">
                               <strong>{{ reservation.customerName }}</strong>
                               <span>{{ reservation.startTime }}:00-{{ reservation.endTime }}:00</span>
                               <small>{{ getPaymentStatusLabel(reservation.paymentStatus) }}</small>
@@ -137,7 +147,7 @@ import {Court, Reservation} from '../../models/court.model';
                             <button
                               type="button"
                               class="schedule-empty"
-                              (click)="selectedEmptySlot.set(court.name + ' - ' + formatHour(hour))">
+                              (click)="openAdminBooking(court.id, court.name, hour)">
                               Libre
                             </button>
                           }
@@ -166,7 +176,7 @@ import {Court, Reservation} from '../../models/court.model';
                               [class.paid]="reservation.paymentStatus === 'PAID'"
                               [class.pending]="reservation.paymentStatus === 'PENDING'"
                               [class.completed]="reservation.status === 'COMPLETED'"
-                              (click)="selectedReservation.set(reservation)">
+                              (click)="selectReservation(reservation)">
                               <span class="mobile-slot-time">{{ formatHour(hour) }}</span>
                               <span class="mobile-slot-main">
                                 <strong>{{ reservation.customerName }}</strong>
@@ -177,7 +187,7 @@ import {Court, Reservation} from '../../models/court.model';
                             <button
                               type="button"
                               class="mobile-slot free"
-                              (click)="selectedEmptySlot.set(court.name + ' - ' + formatHour(hour)); selectedReservation.set(null)">
+                              (click)="openAdminBooking(court.id, court.name, hour)">
                               <span class="mobile-slot-time">{{ formatHour(hour) }}</span>
                               <span class="mobile-slot-main">
                                 <strong>Libre</strong>
@@ -193,6 +203,63 @@ import {Court, Reservation} from '../../models/court.model';
               </article>
 
               <aside class="schedule-side">
+                <!-- Mini booking form for empty slots -->
+                @if (adminBookingSlot()) {
+                  <article class="side-card admin-mini-form">
+                    <div class="mini-form-header">
+                      <h3>Nueva reserva</h3>
+                      <button type="button" class="mini-form-close" (click)="closeAdminBooking()">&#10005;</button>
+                    </div>
+                    <div class="mini-form-slot-info">
+                      <strong>{{ adminBookingSlot()!.courtName }}</strong>
+                      <span>{{ formatHour(adminBookingSlot()!.hour) }} &mdash; {{ scheduleDateFilter() }}</span>
+                    </div>
+                    <form (ngSubmit)="createAdminReservation()" #adminForm="ngForm">
+                      <div class="form-group">
+                        <label>Nombre del cliente</label>
+                        <input
+                          type="text"
+                          class="input"
+                          [(ngModel)]="adminFormData.customerName"
+                          name="customerName"
+                          required
+                          placeholder="Nombre Apellido">
+                      </div>
+                      <div class="form-group">
+                        <label>Email</label>
+                        <input
+                          type="email"
+                          class="input"
+                          [(ngModel)]="adminFormData.customerEmail"
+                          name="customerEmail"
+                          required
+                          placeholder="email@ejemplo.com">
+                      </div>
+                      <div class="form-group">
+                        <label>Hora fin</label>
+                        <select
+                          class="select"
+                          [(ngModel)]="adminFormData.endTime"
+                          name="endTime"
+                          required>
+                          @for (h of endHourOptions(); track h) {
+                            <option [value]="h">{{ formatHour(h) }}</option>
+                          }
+                        </select>
+                      </div>
+                      @if (adminBookingError()) {
+                        <p class="mini-form-error">{{ adminBookingError() }}</p>
+                      }
+                      <div class="mini-form-actions">
+                        <button type="button" class="btn btn-outline btn-sm" (click)="closeAdminBooking()">Cancelar</button>
+                        <button type="submit" class="btn btn-primary btn-sm" [disabled]="adminBookingLoading()">
+                          {{ adminBookingLoading() ? 'Guardando...' : 'Confirmar' }}
+                        </button>
+                      </div>
+                    </form>
+                  </article>
+                }
+
                 <article class="side-card">
                   <h3>Detalle seleccionado</h3>
                   @if (selectedReservation(); as reservation) {
@@ -222,8 +289,8 @@ import {Court, Reservation} from '../../models/court.model';
                     </div>
                   } @else {
                     <p class="muted-copy">Selecciona una reserva para revisar datos, cobro y estado.</p>
-                    @if (selectedEmptySlot(); as slot) {
-                      <div class="empty-slot-note">{{ slot }} disponible</div>
+                    @if (!adminBookingSlot()) {
+                      <p class="muted-copy">O haz clic en un hueco <em>Libre</em> para crear una reserva.</p>
                     }
                   }
                 </article>
@@ -232,7 +299,7 @@ import {Court, Reservation} from '../../models/court.model';
                   <h3>Reservas recientes</h3>
                   <div class="recent-list">
                     @for (res of recentReservations(); track res.id) {
-                      <button type="button" class="recent-row" (click)="selectedReservation.set(res)">
+                      <button type="button" class="recent-row" (click)="selectReservation(res)">
                         <span>{{ res.startTime }}:00</span>
                         <strong>{{ res.court.name }}</strong>
                         <small [class.pending]="res.paymentStatus === 'PENDING'">{{ getPaymentStatusLabel(res.paymentStatus) }}</small>
@@ -637,7 +704,13 @@ class AdminComponent {
   scheduleDateFilter = signal(this.toDateInputValue(new Date()));
   scheduleStatusFilter = signal<string>('all');
   selectedReservation = signal<Reservation | null>(null);
-  selectedEmptySlot = signal('');
+
+  // Admin mini-form for empty slots
+  adminBookingSlot = signal<AdminBookingSlot | null>(null);
+  adminBookingLoading = signal(false);
+  adminBookingError = signal('');
+  adminFormData = { customerName: '', customerEmail: '', endTime: 0 };
+
   reservationHours = Array.from({ length: 15 }, (_, index) => index + 8);
   calendarHours = Array.from({ length: 15 }, (_, index) => index + 8);
 
@@ -772,6 +845,12 @@ class AdminComponent {
       .slice(0, 5)
   );
 
+  endHourOptions = computed(() => {
+    const slot = this.adminBookingSlot();
+    if (!slot) return [];
+    return Array.from({ length: 22 - slot.hour }, (_, i) => slot.hour + i + 1);
+  });
+
   getCalendarReservation(courtId: string, hour: number): Reservation | null {
     return this.scheduledReservations().find(reservation =>
       reservation.court.id === courtId &&
@@ -784,11 +863,62 @@ class AdminComponent {
     return `${hour.toString().padStart(2, '0')}:00`;
   }
 
+  selectReservation(reservation: Reservation): void {
+    this.selectedReservation.set(reservation);
+    this.closeAdminBooking();
+  }
+
+  openAdminBooking(courtId: string, courtName: string, hour: number): void {
+    this.selectedReservation.set(null);
+    this.adminBookingError.set('');
+    this.adminFormData = { customerName: '', customerEmail: '', endTime: hour + 1 };
+    this.adminBookingSlot.set({ courtId, courtName, hour, date: this.scheduleDateFilter() });
+  }
+
+  closeAdminBooking(): void {
+    this.adminBookingSlot.set(null);
+    this.adminBookingError.set('');
+  }
+
+  createAdminReservation(): void {
+    const slot = this.adminBookingSlot();
+    if (!slot) return;
+
+    const { customerName, customerEmail, endTime } = this.adminFormData;
+    if (!customerName.trim() || !customerEmail.trim()) {
+      this.adminBookingError.set('Nombre y email son obligatorios.');
+      return;
+    }
+
+    this.adminBookingLoading.set(true);
+    this.adminBookingError.set('');
+
+    this.reservationService.create({
+      courtId: slot.courtId,
+      customerName: customerName.trim(),
+      customerEmail: customerEmail.trim(),
+      date: slot.date,
+      startTime: slot.hour,
+      endTime,
+      paymentMethod: 'ONSITE'
+    }).subscribe({
+      next: () => {
+        this.adminBookingLoading.set(false);
+        this.closeAdminBooking();
+        this.reservationService.loadAll();
+      },
+      error: (err) => {
+        this.adminBookingLoading.set(false);
+        this.adminBookingError.set(err?.error?.message || 'Error al crear la reserva. Comprueba disponibilidad.');
+      }
+    });
+  }
+
   clearScheduleFilters(): void {
     this.scheduleDateFilter.set(this.toDateInputValue(new Date()));
     this.scheduleStatusFilter.set('all');
     this.selectedReservation.set(null);
-    this.selectedEmptySlot.set('');
+    this.closeAdminBooking();
   }
 
   clearReservationFilters(): void {
@@ -969,4 +1099,4 @@ class AdminComponent {
   }
 }
 
-export default AdminComponent
+export default AdminComponent;
