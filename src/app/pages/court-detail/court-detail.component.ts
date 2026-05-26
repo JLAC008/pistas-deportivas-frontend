@@ -69,10 +69,12 @@ import { Court, TimeSlot } from '../../models/court.model';
                       <button
                         class="time-slot"
                         [class.selected]="isSlotSelected(slot.hour)"
-                        [class.available]="slot.available"
-                        [disabled]="!slot.available"
+                        [class.available]="slot.available && !isPastSlot(slot.hour)"
+                        [class.past]="isPastSlot(slot.hour)"
+                        [class.reserved]="!slot.available && !isPastSlot(slot.hour)"
+                        [disabled]="!slot.available || isPastSlot(slot.hour)"
                         (click)="toggleSlot(slot.hour)">
-                        {{ slot.hour }}:00 - {{ slot.hour + 1 }}:00
+                        {{ formatTime(slot.hour) }} - {{ formatTime(slot.hour + 1) }}
                       </button>
                     }
                   </div>
@@ -237,6 +239,15 @@ export class CourtDetailComponent {
   getTodayString(): string {
     const today = new Date();
     return today.toISOString().split('T')[0];
+  }
+
+  isPastSlot(hour: number): boolean {
+    const today = this.getTodayString();
+    if (this.selectedDate() !== today) {
+      return false;
+    }
+    const currentHour = new Date().getHours();
+    return hour <= currentHour;
   }
 
   totalPrice = computed(() => {

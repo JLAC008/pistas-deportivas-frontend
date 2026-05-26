@@ -11,7 +11,7 @@ import { AuthService } from './services/auth.service';
     <header class="header">
       <div class="header-content">
         <a routerLink="/" class="logo">
-          <span class="logo-icon">&#127812;</span>
+          <img src="resources/icono.webp" alt="Valle Perdido Sport Logo" class="logo-img" />
           <span class="logo-text">Valle Perdido Sport</span>
         </a>
 

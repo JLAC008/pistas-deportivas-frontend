@@ -17,24 +17,19 @@ const COURT_TYPE_ICONS: Record<string, string> = {
   imports: [CommonModule, RouterLink],
   template: `
     <section class="page-header">
-      <div class="page-header-content">
-        <div class="page-kicker">
-          <span>&#127812;</span>
-          Valle Perdido, Murcia
-        </div>
+      <div class="page-header-content" style="display: flex; flex-direction: column; align-items: flex-start;">
         <h1>Alquiler de pistas deportivas</h1>
-        <p>Elige pista, compara precio y reserva tu horario en un centro deportivo moderno rodeado de naturaleza.</p>
-        <div class="page-header-stats">
-          <span><strong>{{ allCourtsCount() }}</strong> pistas</span>
-          <span><strong>20&euro;</strong> desde</span>
-          <span><strong>24/7</strong> online</span>
-        </div>
+        <p style="margin-bottom: 1.5rem;">Elige pista, compara precio y reserva tu horario en un centro deportivo moderno rodeado de naturaleza.</p>
+        <a href="https://maps.app.goo.gl/8Gd6xATfwnCXwPo5A" target="_blank" rel="noopener noreferrer" class="page-kicker" style="margin-bottom: 0;">
+          Valle Perdido, Murcia
+        </a>
       </div>
     </section>
 
     <section class="filters courts-filters">
-      <div class="filter-group">
-        <div class="filter-buttons">
+      <div class="filter-group" style="width: 100%;">
+        <!-- Filtros Desktop -->
+        <div class="filter-buttons desktop-only">
           <button
             class="btn"
             [class.btn-primary]="selectedType() === 'all'"
@@ -52,13 +47,13 @@ const COURT_TYPE_ICONS: Record<string, string> = {
             </button>
           }
         </div>
-      </div>
 
-      <div class="filter-group">
-        <select class="select" [value]="sortBy()" (change)="sortBy.set($any($event.target).value)">
-          <option value="name">Nombre</option>
-          <option value="price-low">Precio: menor a mayor</option>
-          <option value="price-high">Precio: mayor a menor</option>
+        <!-- Filtro Mobile -->
+        <select class="select filter-sort mobile-only" style="width: 100%;" [value]="selectedType()" (change)="selectedType.set($any($event.target).value)">
+          <option value="all">Todas las pistas</option>
+          @for (type of courtTypes; track type) {
+            <option [value]="type">{{ courtTypeIcons[type] }} {{ type | titlecase }}</option>
+          }
         </select>
       </div>
     </section>
@@ -116,7 +111,6 @@ export class CourtsListComponent {
   private courtService = inject(CourtService);
 
   selectedType = signal<string>('all');
-  sortBy = signal<string>('name');
 
   readonly courtTypeIcons = COURT_TYPE_ICONS;
   courtTypes: string[] = ['TENIS', 'FUTBOL', 'PADEL', 'BALONCESTO', 'VOLEIBOL'];
@@ -128,21 +122,10 @@ export class CourtsListComponent {
       courts = courts.filter(c => c.type === this.selectedType());
     }
 
-    courts = [...courts].sort((a, b) => {
-      switch (this.sortBy()) {
-        case 'price-low':
-          return a.pricePerHour - b.pricePerHour;
-        case 'price-high':
-          return b.pricePerHour - a.pricePerHour;
-        default:
-          return a.name.localeCompare(b.name);
-      }
-    });
+    courts = [...courts].sort((a, b) => a.name.localeCompare(b.name));
 
     return courts;
   });
-
-  allCourtsCount = computed(() => this.courtService.courts().length);
 
   ngOnInit() {
     this.courtService.loadAll();
