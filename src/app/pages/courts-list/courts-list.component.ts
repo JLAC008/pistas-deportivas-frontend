@@ -21,6 +21,7 @@ const COURT_TYPE_ICONS: Record<string, string> = {
         <h1>Alquiler de pistas deportivas</h1>
         <p style="margin-bottom: 1.5rem;">Elige pista, compara precio y reserva tu horario en un centro deportivo moderno rodeado de naturaleza.</p>
         <a href="https://maps.app.goo.gl/8Gd6xATfwnCXwPo5A" target="_blank" rel="noopener noreferrer" class="page-kicker" style="margin-bottom: 0;">
+          <img src="resources/google_maps_icon.png" alt="" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;" />
           Valle Perdido, Murcia
         </a>
       </div>

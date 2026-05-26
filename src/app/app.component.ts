@@ -11,8 +11,8 @@ import { AuthService } from './services/auth.service';
     <header class="header">
       <div class="header-content">
         <a routerLink="/" class="logo">
-          <img src="resources/icono.webp" alt="Valle Perdido Sport Logo" class="logo-img" />
-          <span class="logo-text">Valle Perdido Sport</span>
+          <img src="resources/icono.webp" alt="Pistas El Valle Logo" class="logo-img" />
+          <span class="logo-text">Pistas El Valle</span>
         </a>
 
         <div class="user-section">
@@ -23,9 +23,10 @@ import { AuthService } from './services/auth.service';
                 (click)="toggleAvatar($event)"
                 [attr.aria-expanded]="avatarOpen()"
                 aria-haspopup="true">
-                <span class="avatar-emoji">&#128100;</span>
-                <span class="avatar-name">Admin</span>
-                <span class="avatar-chevron" [class.open]="avatarOpen()">&#8964;</span>
+                <img src="resources/icono_perfil.png" alt="Admin" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;" />
+                <div style="display: flex; flex-direction: column;">
+                  <span class="avatar-name" style="line-height: 1.2;">Admin</span>
+                </div>
               </button>
               @if (avatarOpen()) {
                 <div class="user-dropdown">
@@ -50,7 +51,7 @@ import { AuthService } from './services/auth.service';
     <footer class="footer">
       <div class="footer-content">
         <div class="footer-section">
-          <h4>Valle Perdido Sport</h4>
+          <h4>Pistas El Valle</h4>
           <p>Alquiler de pistas deportivas en el Valle Perdido de Murcia</p>
         </div>
         <div class="footer-section">
@@ -64,7 +65,7 @@ import { AuthService } from './services/auth.service';
         </div>
       </div>
       <div class="footer-bottom">
-        <p>&copy; {{ currentYear }} Valle Perdido Sport. Todos los derechos reservados.</p>
+        <p>&copy; {{ currentYear }} Pistas El Valle. Todos los derechos reservados.</p>
       </div>
     </footer>
   `
