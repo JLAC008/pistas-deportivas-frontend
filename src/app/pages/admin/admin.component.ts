@@ -24,8 +24,23 @@ interface AdminBookingSlot {
         <div class="admin-header">
           <span class="admin-header-kicker">Panel de Administracion</span>
           <div class="admin-header-meta">
-            <span>{{ activeCourtsCount() }} pistas activas</span>
-            <span>{{ reservationService.reservations().length }} reservas</span>
+            <span>
+              <svg class="admin-icon admin-icon-lg stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="4" y="4" width="16" height="16" rx="2" />
+                <path d="M12 4v16M4 12h16" />
+                <circle cx="12" cy="12" r="1.6" />
+              </svg>
+              <strong>{{ activeCourtsCount() }}</strong>
+              <small>Pistas activas</small>
+            </span>
+            <span>
+              <svg class="admin-icon admin-icon-lg stat-icon stat-icon-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="4" y="5" width="16" height="15" rx="2" />
+                <path d="M8 3v4M16 3v4M4 10h16" />
+              </svg>
+              <strong>{{ reservationService.reservations().length }}</strong>
+              <small>Reservas</small>
+            </span>
           </div>
         </div>
 
@@ -34,24 +49,41 @@ interface AdminBookingSlot {
             class="tab-btn"
             [class.active]="activeTab() === 'schedule'"
             (click)="switchTab('schedule')">
+            <svg class="admin-icon admin-icon-sm tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="4" y="5" width="16" height="15" rx="2" />
+              <path d="M8 3v4M16 3v4M4 10h16" />
+            </svg>
             Agenda
           </button>
           <button
             class="tab-btn"
             [class.active]="activeTab() === 'courts'"
             (click)="switchTab('courts')">
+            <svg class="admin-icon admin-icon-sm tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="4" y="4" width="16" height="16" rx="2" />
+              <path d="M12 4v16M4 12h16" />
+            </svg>
             Pistas
           </button>
           <button
             class="tab-btn"
             [class.active]="activeTab() === 'reservations'"
             (click)="switchTab('reservations')">
+            <svg class="admin-icon admin-icon-sm tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="4" y="5" width="16" height="15" rx="2" />
+              <path d="M8 3v4M16 3v4M4 10h16" />
+              <path d="M9 15l2 2 4-5" />
+            </svg>
             Reservas
           </button>
           <button
             class="tab-btn"
             [class.active]="activeTab() === 'stats'"
             (click)="switchTab('stats')">
+            <svg class="admin-icon admin-icon-sm tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M5 19V9M12 19V5M19 19v-7" />
+              <path d="M3 19h18" />
+            </svg>
             Estadisticas
           </button>
         </div>
@@ -409,7 +441,14 @@ interface AdminBookingSlot {
         @if (activeTab() === 'reservations') {
           <section class="admin-section">
             <div class="section-actions">
-              <h2>Gestion de Reservas</h2>
+              <h2>
+                <svg class="admin-icon admin-icon-md section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="4" y="5" width="16" height="15" rx="2" />
+                  <path d="M8 3v4M16 3v4M4 10h16" />
+                  <path d="M9 15l2 2 4-5" />
+                </svg>
+                Gestion de Reservas
+              </h2>
               <div class="filters-inline">
                 <select class="select" [value]="reservationFilter()" (change)="reservationFilter.set($any($event.target).value)">
                   <option value="all">Todos los estados</option>
@@ -435,6 +474,10 @@ interface AdminBookingSlot {
                   <option value="date-desc">Fecha mas lejana</option>
                 </select>
                 <button type="button" class="btn btn-outline btn-sm" (click)="clearReservationFilters()">
+                  <svg class="admin-icon admin-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M20 12a8 8 0 1 1-2.35-5.65" />
+                    <path d="M20 4v6h-6" />
+                  </svg>
                   Limpiar
                 </button>
               </div>
@@ -460,26 +503,78 @@ interface AdminBookingSlot {
                   @for (res of filteredReservations(); track res.id) {
                     <tr>
                       <td>#{{ res.id }}</td>
-                      <td>{{ res.court.name }}</td>
+                      <td>
+                        <span class="reservation-court-cell">
+                          <span>{{ res.court.name }}</span>
+                        </span>
+                      </td>
                       <td>{{ res.customerName }}</td>
                       <td>{{ res.customerEmail }}</td>
-                      <td>{{ res.date | date:'shortDate' }}</td>
-                      <td>{{ res.startTime }}:00-{{ res.endTime }}:00</td>
+                      <td>
+                        <span class="table-meta-cell">
+                          <svg class="admin-icon admin-icon-sm table-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="4" y="5" width="16" height="15" rx="2" />
+                            <path d="M8 3v4M16 3v4M4 10h16" />
+                          </svg>
+                          {{ res.date | date:'shortDate' }}
+                        </span>
+                      </td>
+                      <td>
+                        <span class="table-meta-cell">
+                          <svg class="admin-icon admin-icon-sm table-meta-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <circle cx="12" cy="12" r="8" />
+                            <path d="M12 8v5l3 2" />
+                          </svg>
+                          {{ res.startTime }}:00-{{ res.endTime }}:00
+                        </span>
+                      </td>
                       <td>{{ res.totalPrice }}&#8364;</td>
                       <td>
-                        <select
-                          class="select-sm"
-                          [class.payment-paid]="res.paymentStatus === 'PAID'"
-                          [class.payment-pending]="res.paymentStatus === 'PENDING'"
-                          [value]="res.paymentStatus"
-                          (change)="updatePaymentStatus(res.id, $any($event.target).value)">
-                          <option value="PENDING">Pendiente</option>
-                          <option value="PAID">Pagado</option>
-                        </select>
+                        <div class="payment-select-row">
+                          <span
+                            class="badge-icon"
+                            [class.badge-icon-paid]="res.paymentStatus === 'PAID'"
+                            [class.badge-icon-pending]="res.paymentStatus === 'PENDING'">
+                            @if (res.paymentStatus === 'PAID') {
+                              <svg class="admin-icon admin-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <path d="M20 6 9 17l-5-5" />
+                              </svg>
+                            } @else {
+                              <svg class="admin-icon admin-icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <circle cx="12" cy="12" r="8" />
+                                <path d="M12 7v5l3 2" />
+                              </svg>
+                            }
+                          </span>
+                          <select
+                            class="select-sm"
+                            [class.payment-paid]="res.paymentStatus === 'PAID'"
+                            [class.payment-pending]="res.paymentStatus === 'PENDING'"
+                            [value]="res.paymentStatus"
+                            (change)="updatePaymentStatus(res.id, $any($event.target).value)">
+                            <option value="PENDING">Pendiente</option>
+                            <option value="PAID">Pagado</option>
+                          </select>
+                        </div>
                         <div class="payment-method-label">{{ getPaymentMethodLabel(res.paymentMethod) }}</div>
                       </td>
                       <td>
                         <span class="status-badge" [class]="res.status">
+                          @if (res.status === 'CONFIRMED') {
+                            <svg class="admin-icon admin-icon-sm badge-icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                              <path d="M20 6 9 17l-5-5" />
+                            </svg>
+                          } @else if (res.status === 'COMPLETED') {
+                            <svg class="admin-icon admin-icon-sm badge-icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                              <circle cx="12" cy="12" r="8" />
+                              <path d="M8 12h8" />
+                            </svg>
+                          } @else {
+                            <svg class="admin-icon admin-icon-sm badge-icon-inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                              <circle cx="12" cy="12" r="8" />
+                              <path d="m9 9 6 6M15 9l-6 6" />
+                            </svg>
+                          }
                           {{ getStatusLabel(res.status) }}
                         </span>
                       </td>
