@@ -6,11 +6,12 @@ import { ReservationService } from '../../services/reservation.service';
 import { PaymentService } from '../../services/payment.service';
 import { AuthService } from '../../services/auth.service';
 import { Court, TimeSlot } from '../../models/court.model';
+import { DatePickerComponent } from '../../components/date-picker/date-picker.component';
 
 @Component({
   selector: 'app-court-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, DatePickerComponent],
   template: `
     @if (court(); as c) {
       <section class="court-detail">
@@ -52,13 +53,11 @@ import { Court, TimeSlot } from '../../models/court.model';
 
             <div class="booking-form">
               <div class="form-group">
-                <label>Selecciona una fecha:</label>
-                <input
-                  type="date"
-                  class="input"
+                <app-date-picker
+                  [selected]="selectedDate()"
                   [min]="minDate"
-                  [value]="selectedDate()"
-                  (input)="onDateChange($any($event.target).value)">
+                  (selectDate)="onDateChange($event)">
+                </app-date-picker>
               </div>
 
               @if (availableSlots().length > 0) {
@@ -178,7 +177,11 @@ import { Court, TimeSlot } from '../../models/court.model';
                   </div>
                 }
               } @else {
-                <p class="no-slots">Selecciona una fecha para ver los horarios disponibles</p>
+                <div class="no-slots-content">
+                  <span class="no-slots-icon">&#128197;</span>
+                  <strong>Elige una fecha</strong>
+                  <span>Selecciona una fecha para ver los horarios disponibles</span>
+                </div>
               }
             </div>
           </div>
@@ -312,7 +315,7 @@ export class CourtDetailComponent {
       const newSlots = [...slots, hour].sort((a, b) => a - b);
       let consecutive = true;
       for (let i = 1; i < newSlots.length; i++) {
-        if (newSlots[i] - newSlots[i-1] !== 1) {
+        if (newSlots[i] - newSlots[i - 1] !== 1) {
           consecutive = false;
           break;
         }
