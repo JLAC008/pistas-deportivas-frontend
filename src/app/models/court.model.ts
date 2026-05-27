@@ -11,7 +11,6 @@ export interface Court {
   pricePerHour: number;
   imageUrl: string | null;
   isActive: boolean;
-  maxPlayers: number;
   amenities: string[];
 }
 

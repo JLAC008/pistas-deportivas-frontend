@@ -57,14 +57,6 @@ import { DatePickerComponent } from '../../components/date-picker/date-picker.co
                 </span>
                 <span>
                   <svg class="booking-icon booking-icon-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M8 21v-4a4 4 0 0 1 8 0v4" />
-                    <circle cx="12" cy="8" r="4" />
-                  </svg>
-                  <strong>2-{{ c.maxPlayers }}</strong>
-                  <small>Jugadores</small>
-                </span>
-                <span>
-                  <svg class="booking-icon booking-icon-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M12 3v18M5 12h14" />
                     <circle cx="12" cy="12" r="8" />
                   </svg>

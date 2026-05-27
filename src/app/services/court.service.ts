@@ -35,7 +35,6 @@ export class CourtService {
     type: string;
     description: string;
     pricePerHour: number;
-    maxPlayers: number;
     imageUrl?: string;
     amenities: string[];
   }): Observable<Court> {
@@ -47,7 +46,6 @@ export class CourtService {
     type: string;
     description: string;
     pricePerHour: number;
-    maxPlayers: number;
     imageUrl?: string;
     amenities: string[];
   }): Observable<Court> {

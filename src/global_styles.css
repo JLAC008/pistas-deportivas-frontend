@@ -887,8 +887,6 @@ app-root { display: flex; flex-direction: column; min-height: 100vh; }
   line-height: 1;
 }
 
-.court-players { font-size: 0.82rem; color: var(--muted); }
-
 /* CTA dentro de la card (decorativo — la card entera es el link) */
 .court-footer .btn-primary {
   pointer-events: none;

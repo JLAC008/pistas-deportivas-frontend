@@ -362,7 +362,6 @@ interface AdminBookingSlot {
                     <th>Nombre</th>
                     <th>Tipo</th>
                     <th>Precio/hora</th>
-                    <th>Jugadores</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                   </tr>
@@ -378,7 +377,6 @@ interface AdminBookingSlot {
                         <span class="type-badge">{{ court.type }}</span>
                       </td>
                       <td>{{ court.pricePerHour }}&#8364;</td>
-                      <td>{{ court.maxPlayers }}</td>
                       <td>
                         <span class="status-badge" [class.active]="court.isActive" [class.inactive]="!court.isActive">
                           {{ court.isActive ? 'Activa' : 'Inactiva' }}
@@ -416,7 +414,6 @@ interface AdminBookingSlot {
                       <div class="admin-mobile-meta">
                         <span class="type-badge">{{ court.type }}</span>
                         <span>{{ court.pricePerHour }}&#8364;/hora</span>
-                        <span>{{ court.maxPlayers }} jugadores</span>
                       </div>
                     </div>
                   </div>
@@ -731,10 +728,6 @@ interface AdminBookingSlot {
                     <label>Precio por hora (&#8364;)</label>
                     <input type="number" class="input" [(ngModel)]="courtForm.pricePerHour" name="price" required min="1">
                   </div>
-                  <div class="form-group">
-                    <label>Max. Jugadores</label>
-                    <input type="number" class="input" [(ngModel)]="courtForm.maxPlayers" name="players" required min="1">
-                  </div>
                 </div>
 
                 <div class="form-group">
@@ -814,7 +807,6 @@ class AdminComponent {
     type: 'TENIS' as string,
     description: '',
     pricePerHour: 20,
-    maxPlayers: 4,
     imageUrl: 'https://images.pexels.com/photos/209977/pexels-photo-209977.jpeg?auto=compress&cs=tinysrgb&w=800',
     amenitiesInput: '',
     isActive: true
@@ -1063,7 +1055,6 @@ class AdminComponent {
       type: court.type,
       description: court.description || '',
       pricePerHour: court.pricePerHour,
-      maxPlayers: court.maxPlayers,
       imageUrl: court.imageUrl || '',
       amenitiesInput: court.amenities.join(', '),
       isActive: court.isActive
@@ -1105,7 +1096,6 @@ class AdminComponent {
       type: 'TENIS',
       description: '',
       pricePerHour: 20,
-      maxPlayers: 4,
       imageUrl: 'https://images.pexels.com/photos/209977/pexels-photo-209977.jpeg?auto=compress&cs=tinysrgb&w=800',
       amenitiesInput: '',
       isActive: true
@@ -1123,7 +1113,6 @@ class AdminComponent {
       type: this.courtForm.type,
       description: this.courtForm.description,
       pricePerHour: this.courtForm.pricePerHour,
-      maxPlayers: this.courtForm.maxPlayers,
       imageUrl: this.courtForm.imageUrl,
       amenities
     };
