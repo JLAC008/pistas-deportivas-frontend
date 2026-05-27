@@ -15,39 +15,61 @@ import { DatePickerComponent } from '../../components/date-picker/date-picker.co
     @if (court(); as c) {
       <section class="court-detail">
         <article class="booking-card">
-          <div class="booking-hero">
+          <a routerLink="/" class="booking-back">
+            <span>&#8592;</span>
+            Volver a pistas
+          </a>
+
+          <div class="booking-hero-full">
             <img
               [src]="c.imageUrl || 'https://images.pexels.com/photos/209977/pexels-photo-209977.jpeg?auto=compress&cs=tinysrgb&w=1000'"
               [alt]="c.name">
 
-            <a routerLink="/" class="booking-back">
+            <a routerLink="/" class="booking-hero-back">
               <span>&#8592;</span>
               Volver
             </a>
 
-            <span class="booking-status" [class.inactive]="!c.isActive">
+            <span class="booking-hero-status" [class.inactive]="!c.isActive">
               {{ c.isActive ? 'Disponible' : 'Inactiva' }}
             </span>
 
-            <div class="booking-hero-info">
+            <div class="booking-info-panel">
               <h1>{{ c.name }}</h1>
               <p>{{ c.description || 'Reserva tu pista de forma rapida y sencilla.' }}</p>
+
               <div class="booking-facts">
                 <span>
-                  <strong>{{ c.type | titlecase }}</strong>
-                  <small>Superficie</small>
+                  <svg class="booking-icon booking-icon-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="8" />
+                    <path d="M12 8v8M9.5 10.2c.7-.8 4.8-1.1 4.8 1.2 0 2.4-4.6.9-4.6 3.1 0 1.8 3.5 1.7 4.8.8" />
+                  </svg>
+                  <strong>{{ c.pricePerHour }}&#8364;/hora</strong>
+                  <small>Precio</small>
                 </span>
                 <span>
-                  <strong>{{ hasLighting(c) ? 'Si' : 'Consultar' }}</strong>
-                  <small>Iluminacion</small>
+                  <svg class="booking-icon booking-icon-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="12" cy="12" r="8" />
+                    <path d="M8.5 12.5l2.4 2.4 4.8-5.2" />
+                  </svg>
+                  <strong>{{ c.isActive ? 'Disponible' : 'Inactiva' }}</strong>
+                  <small>Estado</small>
                 </span>
                 <span>
+                  <svg class="booking-icon booking-icon-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M8 21v-4a4 4 0 0 1 8 0v4" />
+                    <circle cx="12" cy="8" r="4" />
+                  </svg>
                   <strong>2-{{ c.maxPlayers }}</strong>
                   <small>Jugadores</small>
                 </span>
                 <span>
-                  <strong>{{ c.pricePerHour }}&#8364;/h</strong>
-                  <small>Precio</small>
+                  <svg class="booking-icon booking-icon-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 3v18M5 12h14" />
+                    <circle cx="12" cy="12" r="8" />
+                  </svg>
+                  <strong>{{ hasLighting(c) ? 'Si' : 'Consultar' }}</strong>
+                  <small>Iluminacion</small>
                 </span>
               </div>
             </div>
@@ -55,166 +77,185 @@ import { DatePickerComponent } from '../../components/date-picker/date-picker.co
 
           @if (c.isActive) {
             <div class="booking-section">
-              <div class="booking-step">
-                <span>Fecha</span>
-              </div>
-
-              <div class="form-group">
-                <app-date-picker
-                  [selected]="selectedDate()"
-                  [min]="minDate"
-                  (selectDate)="onDateChange($event)">
-                </app-date-picker>
-              </div>
-
               @if (availableSlots().length > 0) {
-                <div class="booking-step">
-                  <span>Horas disponibles</span>
+                <div class="booking-section-title">
+                  <h2>
+                    <svg class="booking-icon booking-icon-title" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <rect x="4" y="5" width="16" height="15" rx="2" />
+                      <path d="M8 3v4M16 3v4M4 10h16" />
+                      <path d="M9 15l2 2 4-5" />
+                    </svg>
+                    Reservar
+                  </h2>
                 </div>
 
-                <div class="form-group">
-                  <div class="time-slots">
-                    @for (slot of availableSlots(); track slot.hour) {
-                      <button
-                        class="time-slot"
-                        [class.selected]="isSlotSelected(slot.hour)"
-                        [class.available]="slot.available && !isPastSlot(slot.hour)"
-                        [class.past]="isPastSlot(slot.hour)"
-                        [class.reserved]="!slot.available && !isPastSlot(slot.hour)"
-                        [disabled]="!slot.available || isPastSlot(slot.hour)"
-                        (click)="toggleSlot(slot.hour)">
-                        {{ formatTime(slot.hour) }}
-                      </button>
-                    }
-                  </div>
-                </div>
+                <div class="booking-grid">
+                  <aside class="booking-calendar-panel">
+                    <h2>
+                      <svg class="booking-icon booking-icon-title" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <rect x="4" y="5" width="16" height="15" rx="2" />
+                        <path d="M8 3v4M16 3v4M4 10h16" />
+                      </svg>
+                      Fecha
+                    </h2>
+                    <app-date-picker
+                      [selected]="selectedDate()"
+                      [min]="minDate"
+                      (selectDate)="onDateChange($event)">
+                    </app-date-picker>
+                  </aside>
 
-                <div class="booking-step">
-                  <span>Pago y datos</span>
-                </div>
-
-                <div class="form-group">
-                  <label>Forma de pago:</label>
-                  <div class="payment-options">
-                    <div class="payment-option" [class.selected]="paymentMethod() === 'ONLINE'" (click)="paymentMethod.set('ONLINE')">
+                  <div class="booking-hours-panel">
+                    <div class="booking-step">
                       <span>
-                        <strong>Pagar online</strong>
-                        <small>Pago con tarjeta via Redsys</small>
+                        <svg class="booking-icon booking-icon-title" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <circle cx="12" cy="12" r="8" />
+                          <path d="M12 8v5l3 2" />
+                        </svg>
+                        Horas disponibles
                       </span>
                     </div>
-                    <div class="payment-option" [class.selected]="paymentMethod() === 'ONSITE'" (click)="paymentMethod.set('ONSITE')">
-                      <span>
-                        <strong>Pagar en el local</strong>
-                        <small>Reserva ahora y paga al llegar</small>
-                      </span>
-                    </div>
-                  </div>
-                </div>
 
-                @if (paymentMethod() === 'ONLINE') {
-                  <div class="guest-booking">
-                    <div class="form-group">
-                      <label for="guest-name">Nombre completo:</label>
-                      <input
-                        type="text"
-                        id="guest-name"
-                        class="input"
-                        [value]="customerName()"
-                        (input)="customerName.set($any($event.target).value)"
-                        placeholder="Tu nombre"
-                        required>
-                    </div>
-                    <div class="form-group">
-                      <label for="guest-phone">Telefono de contacto:</label>
-                      <input
-                        type="tel"
-                        inputmode="numeric"
-                        id="guest-phone"
-                        class="input"
-                        [value]="customerPhone()"
-                        (input)="onPhoneInput($event)"
-                        placeholder="Tu telefono"
-                        required>
-                    </div>
-                    <div class="form-group">
-                      <label for="guest-email">Email para la reserva:</label>
-                      <input
-                        type="email"
-                        id="guest-email"
-                        class="input"
-                        [value]="customerEmail()"
-                        (input)="customerEmail.set($any($event.target).value)"
-                        placeholder="tu@email.com"
-                        required>
-                      @if (customerEmail().trim() && !isValidEmail()) {
-                        <p class="form-error">Introduce un email valido</p>
+                    <div class="time-slots">
+                      @for (slot of availableSlots(); track slot.hour) {
+                        <button
+                          class="time-slot"
+                          [class.selected]="isSlotSelected(slot.hour)"
+                          [class.available]="slot.available && !isPastSlot(slot.hour)"
+                          [class.past]="isPastSlot(slot.hour)"
+                          [class.reserved]="!slot.available && !isPastSlot(slot.hour)"
+                          [disabled]="!slot.available || isPastSlot(slot.hour)"
+                          (click)="toggleSlot(slot.hour)">
+                          {{ formatTime(slot.hour) }} - {{ formatTime(slot.hour + 1) }}
+                        </button>
                       }
                     </div>
                   </div>
 
-                  <button
-                    class="btn btn-primary btn-lg btn-block"
-                    [disabled]="!canBook() || isBooking()"
-                    (click)="makeReservation()">
-                    @if (isBooking()) {
-                      Reservando...
-                    } @else {
-                      Confirmar Reserva
-                    }
-                  </button>
+                  <aside class="booking-side-panel">
+                    <div class="booking-summary booking-summary-final">
+                      <div class="summary-row">
+                        <span>Horas:</span>
+                        <span>{{ selectedSlots().length }}</span>
+                      </div>
+                      <div class="summary-row total">
+                        <span>Total:</span>
+                        <span>{{ totalPrice() }}&#8364;</span>
+                      </div>
+                    </div>
+
+                    <div class="form-group">
+                      <label>
+                        <svg class="booking-icon booking-icon-label" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <rect x="4" y="7" width="16" height="11" rx="2" />
+                          <path d="M4 11h16" />
+                        </svg>
+                        Forma de pago
+                      </label>
+                      <div class="payment-options">
+                        <div class="payment-option" [class.selected]="paymentMethod() === 'ONLINE'" (click)="paymentMethod.set('ONLINE')">
+                          <svg class="booking-icon booking-icon-label" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <rect x="4" y="7" width="16" height="11" rx="2" />
+                            <path d="M4 11h16" />
+                          </svg>
+                          <span>
+                            <strong>Pagar online</strong>
+                            <small>Pago con tarjeta via Redsys</small>
+                          </span>
+                        </div>
+                        <div class="payment-option" [class.selected]="paymentMethod() === 'ONSITE'" (click)="paymentMethod.set('ONSITE')">
+                          <svg class="booking-icon booking-icon-label" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M4 20V9l8-5 8 5v11" />
+                            <path d="M9 20v-6h6v6" />
+                          </svg>
+                          <span>
+                            <strong>Pagar en el local</strong>
+                            <small>Reserva ahora y paga al llegar</small>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </aside>
+                </div>
+
+                @if (paymentMethod() === 'ONLINE') {
+                  <div class="booking-customer-row">
+                    <div class="guest-booking">
+                      <div class="form-group">
+                        <label for="guest-name">Nombre completo</label>
+                        <input
+                          type="text"
+                          id="guest-name"
+                          class="input"
+                          [value]="customerName()"
+                          (input)="customerName.set($any($event.target).value)"
+                          placeholder="Tu nombre"
+                          required>
+                      </div>
+                      <div class="form-group">
+                        <label for="guest-phone">Telefono de contacto</label>
+                        <input
+                          type="tel"
+                          inputmode="numeric"
+                          id="guest-phone"
+                          class="input"
+                          [value]="customerPhone()"
+                          (input)="onPhoneInput($event)"
+                          placeholder="Tu telefono"
+                          required>
+                      </div>
+                      <div class="form-group">
+                        <label for="guest-email">Email para la reserva</label>
+                        <input
+                          type="email"
+                          id="guest-email"
+                          class="input"
+                          [value]="customerEmail()"
+                          (input)="customerEmail.set($any($event.target).value)"
+                          placeholder="tu@email.com"
+                          required>
+                        @if (customerEmail().trim() && !isValidEmail()) {
+                          <p class="form-error">Introduce un email valido</p>
+                        }
+                      </div>
+                    </div>
+
+                    <button
+                      class="btn btn-primary btn-lg"
+                      [disabled]="!canBook() || isBooking()"
+                      (click)="makeReservation()">
+                      @if (isBooking()) {
+                        Reservando...
+                      } @else {
+                        Confirmar Reserva
+                      }
+                    </button>
+                  </div>
                 }
 
                 @if (paymentMethod() === 'ONSITE') {
-                  <div class="onsite-notice">
-                    <div class="onsite-notice-icon">i</div>
-                    <div>
-                      <strong>Pago en persona</strong>
-                      <p>Deberas acudir a nuestras instalaciones para formalizar el pago en el momento de tu reserva. El equipo te atendera a tu llegada.</p>
+                  <div class="booking-customer-row onsite-row">
+                    <div class="onsite-notice">
+                      <div class="onsite-notice-icon">i</div>
+                      <div>
+                        <strong>Pago en persona</strong>
+                        <p>Deberas acudir a nuestras instalaciones para formalizar el pago en el momento de tu reserva. El equipo te atendera a tu llegada.</p>
+                      </div>
                     </div>
+
+                    <button
+                      class="btn btn-primary btn-lg"
+                      [disabled]="!canBook() || isBooking()"
+                      (click)="makeReservation()">
+                      @if (isBooking()) {
+                        Reservando...
+                      } @else {
+                        Confirmar Reserva
+                      }
+                    </button>
                   </div>
                 }
 
-                <div class="booking-summary booking-summary-final">
-                  <h2>Resumen</h2>
-                  <div class="summary-row">
-                    <span>Pista</span>
-                    <span>{{ c.name }}</span>
-                  </div>
-                  <div class="summary-row">
-                    <span>Fecha</span>
-                    <span>{{ selectedDateLabel() }}</span>
-                  </div>
-                  <div class="summary-row">
-                    <span>Hora</span>
-                    <span>{{ selectedTimeRange() }}</span>
-                  </div>
-                  <div class="summary-row">
-                    <span>Pago</span>
-                    <span>{{ paymentMethodLabel() }}</span>
-                  </div>
-                  @if (customerName().trim()) {
-                    <div class="summary-row">
-                      <span>Nombre</span>
-                      <span>{{ customerName().trim() }}</span>
-                    </div>
-                  }
-                  @if (customerPhone().trim()) {
-                    <div class="summary-row">
-                      <span>Telefono</span>
-                      <span>{{ customerPhone().trim() }}</span>
-                    </div>
-                  }
-                  @if (customerEmail().trim()) {
-                    <div class="summary-row">
-                      <span>Email</span>
-                      <span>{{ customerEmail().trim() }}</span>
-                    </div>
-                  }
-                  <div class="summary-row total">
-                    <span>Total</span>
-                    <span>{{ totalPrice() }}&#8364;</span>
-                  </div>
-                </div>
               } @else {
                 <div class="no-slots-content">
                   <span class="no-slots-icon">&#128197;</span>
