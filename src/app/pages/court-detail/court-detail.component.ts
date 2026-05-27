@@ -1,10 +1,9 @@
 import { Component, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CourtService } from '../../services/court.service';
 import { ReservationService } from '../../services/reservation.service';
 import { PaymentService } from '../../services/payment.service';
-import { AuthService } from '../../services/auth.service';
 import { Court, TimeSlot } from '../../models/court.model';
 import { DatePickerComponent } from '../../components/date-picker/date-picker.component';
 
@@ -15,43 +14,51 @@ import { DatePickerComponent } from '../../components/date-picker/date-picker.co
   template: `
     @if (court(); as c) {
       <section class="court-detail">
-        <div class="court-header">
-          <a routerLink="/" class="back-link">
-            <span class="back-link-arrow">&#8592;</span>
-            Volver a pistas
-          </a>
-          <div class="court-image-large">
-            <img [src]="c.imageUrl || 'https://via.placeholder.com/800x400?text=Sin+Imagen'" [alt]="c.name">
-            <span class="court-type-badge">{{ c.type }}</span>
-          </div>
-          <div class="court-title-section">
-            <h1>{{ c.name }}</h1>
-            <p class="court-description-full">{{ c.description }}</p>
-            <div class="court-quick-info">
-              <span class="info-item">
-                <strong>Precio:</strong> {{ c.pricePerHour }}&#8364;/hora
-              </span>
-              <span class="info-item" [class.inactive-status]="!c.isActive">
-                <strong>Estado:</strong> {{ c.isActive ? 'Disponible' : 'Inactiva' }}
-              </span>
+        <article class="booking-card">
+          <div class="booking-hero">
+            <img
+              [src]="c.imageUrl || 'https://images.pexels.com/photos/209977/pexels-photo-209977.jpeg?auto=compress&cs=tinysrgb&w=1000'"
+              [alt]="c.name">
+
+            <a routerLink="/" class="booking-back">
+              <span>&#8592;</span>
+              Volver
+            </a>
+
+            <span class="booking-status" [class.inactive]="!c.isActive">
+              {{ c.isActive ? 'Disponible' : 'Inactiva' }}
+            </span>
+
+            <div class="booking-hero-info">
+              <h1>{{ c.name }}</h1>
+              <p>{{ c.description || 'Reserva tu pista de forma rapida y sencilla.' }}</p>
+              <div class="booking-facts">
+                <span>
+                  <strong>{{ c.type | titlecase }}</strong>
+                  <small>Superficie</small>
+                </span>
+                <span>
+                  <strong>{{ hasLighting(c) ? 'Si' : 'Consultar' }}</strong>
+                  <small>Iluminacion</small>
+                </span>
+                <span>
+                  <strong>2-{{ c.maxPlayers }}</strong>
+                  <small>Jugadores</small>
+                </span>
+                <span>
+                  <strong>{{ c.pricePerHour }}&#8364;/h</strong>
+                  <small>Precio</small>
+                </span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="court-amenities-section">
-          <h2>Instalaciones</h2>
-          <div class="amenities-list">
-            @for (amenity of c.amenities; track amenity) {
-              <span class="amenity-badge">{{ amenity }}</span>
-            }
-          </div>
-        </div>
+          @if (c.isActive) {
+            <div class="booking-section">
+              <div class="booking-step">
+                <span>Fecha</span>
+              </div>
 
-        @if (c.isActive) {
-          <div class="booking-section">
-            <h2>Reservar</h2>
-
-            <div class="booking-form">
               <div class="form-group">
                 <app-date-picker
                   [selected]="selectedDate()"
@@ -61,8 +68,11 @@ import { DatePickerComponent } from '../../components/date-picker/date-picker.co
               </div>
 
               @if (availableSlots().length > 0) {
+                <div class="booking-step">
+                  <span>Horas disponibles</span>
+                </div>
+
                 <div class="form-group">
-                  <label>Horarios disponibles:</label>
                   <div class="time-slots">
                     @for (slot of availableSlots(); track slot.hour) {
                       <button
@@ -73,27 +83,14 @@ import { DatePickerComponent } from '../../components/date-picker/date-picker.co
                         [class.reserved]="!slot.available && !isPastSlot(slot.hour)"
                         [disabled]="!slot.available || isPastSlot(slot.hour)"
                         (click)="toggleSlot(slot.hour)">
-                        {{ formatTime(slot.hour) }} - {{ formatTime(slot.hour + 1) }}
+                        {{ formatTime(slot.hour) }}
                       </button>
                     }
                   </div>
-                  @if (selectedSlots().length > 0) {
-                    <p class="selection-info">
-                     Seleccionado: {{ formatTime(selectedSlots()[0]) }} - {{ formatTime(selectedSlots()[selectedSlots().length - 1] + 1) }}
-                      ({{ selectedSlots().length }} hora{{ selectedSlots().length > 1 ? 's' : '' }})
-                    </p>
-                  }
                 </div>
 
-                <div class="booking-summary">
-                  <div class="summary-row">
-                    <span>Horas:</span>
-                    <span>{{ selectedSlots().length }}</span>
-                  </div>
-                  <div class="summary-row total">
-                    <span>Total:</span>
-                    <span>{{ totalPrice() }}&#8364;</span>
-                  </div>
+                <div class="booking-step">
+                  <span>Pago y datos</span>
                 </div>
 
                 <div class="form-group">
@@ -128,7 +125,7 @@ import { DatePickerComponent } from '../../components/date-picker/date-picker.co
                         required>
                     </div>
                     <div class="form-group">
-                      <label for="guest-phone">Teléfono de contacto:</label>
+                      <label for="guest-phone">Telefono de contacto:</label>
                       <input
                         type="tel"
                         inputmode="numeric"
@@ -136,7 +133,7 @@ import { DatePickerComponent } from '../../components/date-picker/date-picker.co
                         class="input"
                         [value]="customerPhone()"
                         (input)="onPhoneInput($event)"
-                        placeholder="Tu teléfono"
+                        placeholder="Tu telefono"
                         required>
                     </div>
                     <div class="form-group">
@@ -169,13 +166,55 @@ import { DatePickerComponent } from '../../components/date-picker/date-picker.co
 
                 @if (paymentMethod() === 'ONSITE') {
                   <div class="onsite-notice">
-                    <div class="onsite-notice-icon">🏢</div>
+                    <div class="onsite-notice-icon">i</div>
                     <div>
                       <strong>Pago en persona</strong>
-                      <p>Deberás acudir a nuestras instalaciones para formalizar el pago en el momento de tu reserva. El equipo te atenderá a tu llegada.</p>
+                      <p>Deberas acudir a nuestras instalaciones para formalizar el pago en el momento de tu reserva. El equipo te atendera a tu llegada.</p>
                     </div>
                   </div>
                 }
+
+                <div class="booking-summary booking-summary-final">
+                  <h2>Resumen</h2>
+                  <div class="summary-row">
+                    <span>Pista</span>
+                    <span>{{ c.name }}</span>
+                  </div>
+                  <div class="summary-row">
+                    <span>Fecha</span>
+                    <span>{{ selectedDateLabel() }}</span>
+                  </div>
+                  <div class="summary-row">
+                    <span>Hora</span>
+                    <span>{{ selectedTimeRange() }}</span>
+                  </div>
+                  <div class="summary-row">
+                    <span>Pago</span>
+                    <span>{{ paymentMethodLabel() }}</span>
+                  </div>
+                  @if (customerName().trim()) {
+                    <div class="summary-row">
+                      <span>Nombre</span>
+                      <span>{{ customerName().trim() }}</span>
+                    </div>
+                  }
+                  @if (customerPhone().trim()) {
+                    <div class="summary-row">
+                      <span>Telefono</span>
+                      <span>{{ customerPhone().trim() }}</span>
+                    </div>
+                  }
+                  @if (customerEmail().trim()) {
+                    <div class="summary-row">
+                      <span>Email</span>
+                      <span>{{ customerEmail().trim() }}</span>
+                    </div>
+                  }
+                  <div class="summary-row total">
+                    <span>Total</span>
+                    <span>{{ totalPrice() }}&#8364;</span>
+                  </div>
+                </div>
               } @else {
                 <div class="no-slots-content">
                   <span class="no-slots-icon">&#128197;</span>
@@ -184,8 +223,16 @@ import { DatePickerComponent } from '../../components/date-picker/date-picker.co
                 </div>
               }
             </div>
-          </div>
-        }
+          } @else {
+            <div class="booking-section">
+              <div class="no-slots-content">
+                <span class="no-slots-icon">&#128683;</span>
+                <strong>Pista no disponible</strong>
+                <span>Esta pista no admite reservas ahora mismo.</span>
+              </div>
+            </div>
+          }
+        </article>
 
         @if (showSuccess()) {
           <div class="success-overlay" (click)="showSuccess.set(false)">
@@ -196,7 +243,7 @@ import { DatePickerComponent } from '../../components/date-picker/date-picker.co
               <div class="success-details">
                 <p><strong>Pista:</strong> {{ c.name }}</p>
                 <p><strong>Fecha:</strong> {{ selectedDate() }}</p>
-                <p><strong>Hora:</strong> {{ formatTime(selectedSlots()[0]) }} - {{ formatTime(selectedSlots()[selectedSlots().length - 1] + 1) }}</p>
+                <p><strong>Hora:</strong> {{ selectedTimeRange() }}</p>
                 <p><strong>Email:</strong> {{ customerEmail() }}</p>
                 <p><strong>Pago:</strong> {{ paymentMethodLabel() }}</p>
               </div>
@@ -219,7 +266,6 @@ import { DatePickerComponent } from '../../components/date-picker/date-picker.co
 })
 export class CourtDetailComponent {
   private readonly route = inject(ActivatedRoute);
-  private readonly router = inject(Router);
   private readonly courtService = inject(CourtService);
   private readonly reservationService = inject(ReservationService);
   private readonly paymentService = inject(PaymentService);
@@ -289,7 +335,7 @@ export class CourtDetailComponent {
   onPhoneInput(event: Event): void {
     const inputElement = event.target as HTMLInputElement;
     const numericValue = inputElement.value.replace(/[^0-9]/g, '');
-    inputElement.value = numericValue; // Force the DOM to reflect only numbers
+    inputElement.value = numericValue;
     this.customerPhone.set(numericValue);
   }
 
@@ -326,6 +372,25 @@ export class CourtDetailComponent {
 
   formatTime(hour: number): string {
     return `${hour.toString().padStart(2, '0')}:00`;
+  }
+
+  selectedTimeRange(): string {
+    const slots = this.selectedSlots();
+    if (!slots.length) return 'Selecciona hora';
+    return `${this.formatTime(slots[0])} - ${this.formatTime(slots[slots.length - 1] + 1)}`;
+  }
+
+  selectedDateLabel(): string {
+    const date = new Date(this.selectedDate() + 'T12:00:00');
+    return new Intl.DateTimeFormat('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    }).format(date);
+  }
+
+  hasLighting(court: Court): boolean {
+    return court.amenities.some(amenity => amenity.toLowerCase().includes('ilumin'));
   }
 
   isValidEmail(): boolean {
