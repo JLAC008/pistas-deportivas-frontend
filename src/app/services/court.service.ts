@@ -18,6 +18,10 @@ export class CourtService {
     this.http.get<Court[]>(`${this.apiUrl}/courts`).subscribe(c => this.courtsSubject.next(c));
   }
 
+  getAll(): Observable<Court[]> {
+    return this.http.get<Court[]>(`${this.apiUrl}/courts`);
+  }
+
   loadAdminAll(): void {
     this.http.get<Court[]>(`${this.apiUrl}/admin/courts`).subscribe(c => this.courtsSubject.next(c));
   }

@@ -345,17 +345,29 @@ export class CourtDetailComponent {
   });
 
   ngOnInit() {
-    const id = this.route.snapshot.paramMap.get('id');
-    if (id) {
+    const identifier = this.route.snapshot.paramMap.get('id');
+    if (identifier) {
       this.loadingCourt.set(true);
-      this.courtService.getById(id).subscribe({
-        next: court => {
-          this.court.set(court);
-          this.loadingCourt.set(false);
-          this.loadAvailability();
-        },
-        error: () => this.loadingCourt.set(false)
-      });
+      if (this.isUuid(identifier)) {
+        this.courtService.getById(identifier).subscribe({
+          next: court => {
+            this.court.set(court);
+            this.loadingCourt.set(false);
+            this.loadAvailability();
+          },
+          error: () => this.loadingCourt.set(false)
+        });
+      } else {
+        this.courtService.getAll().subscribe({
+          next: courts => {
+            const court = courts.find(item => this.courtSlug(item.name) === identifier);
+            this.court.set(court || null);
+            this.loadingCourt.set(false);
+            if (court) this.loadAvailability();
+          },
+          error: () => this.loadingCourt.set(false)
+        });
+      }
     }
   }
 
@@ -424,6 +436,20 @@ export class CourtDetailComponent {
 
   hasLighting(court: Court): boolean {
     return court.amenities.some(amenity => amenity.toLowerCase().includes('ilumin'));
+  }
+
+  private isUuid(value: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  }
+
+  private courtSlug(name: string): string {
+    return name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }
 
   isValidEmail(): boolean {

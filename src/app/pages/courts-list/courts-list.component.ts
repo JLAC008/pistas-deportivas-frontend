@@ -65,7 +65,7 @@ const COURT_TYPE_ICONS: Record<string, string> = {
           <a
             class="court-card"
             [class.inactive]="!court.isActive"
-            [routerLink]="court.isActive ? ['/pista', court.id] : null"
+            [routerLink]="court.isActive ? ['/pista', courtSlug(court.name)] : null"
             [attr.aria-disabled]="!court.isActive || null">
             <div class="court-image">
               <img
@@ -130,5 +130,15 @@ export class CourtsListComponent {
 
   ngOnInit() {
     this.courtService.loadAll();
+  }
+
+  courtSlug(name: string): string {
+    return name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }
 }
