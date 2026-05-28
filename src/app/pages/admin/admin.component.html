@@ -70,94 +70,125 @@
         <!-- Schedule Calendar -->
         @if (activeTab() === 'schedule') {
           <section class="admin-schedule">
-            <div class="schedule-hero">
-              <div>
-                <p class="schedule-eyebrow">Agenda operativa</p>
-                <h2>Calendario de pistas</h2>
-                <p>Consulta ocupacion, cobros pendientes y huecos disponibles por pista sin salir del panel.</p>
-              </div>
-              <div class="schedule-actions">
-                <button type="button" class="btn btn-outline btn-sm" (click)="clearScheduleFilters()">Hoy</button>
-              </div>
-            </div>
-
-            <div class="schedule-stats">
-              <article class="schedule-stat">
-                <span>Ocupacion visible</span>
-                <strong>{{ scheduleOccupancy() }}%</strong>
-                <small>{{ scheduledReservations().length }} bloques reservados</small>
-              </article>
-              <article class="schedule-stat">
-                <span>Pendiente de cobro</span>
-                <strong>{{ pendingSchedulePayments() }}</strong>
-                <small>reservas a revisar</small>
-              </article>
-              <article class="schedule-stat">
-                <span>Pistas activas</span>
-                <strong>{{ activeCourtsCount() }}</strong>
-                <small>{{ calendarCourts().length }} en agenda</small>
-              </article>
-            </div>
-
-            <div class="schedule-layout">
-              <article class="schedule-board">
-                <div class="schedule-toolbar">
-                  <div class="schedule-date">
-                    <label for="schedule-date">Fecha</label>
-                    <input
-                      id="schedule-date"
-                      type="date"
-                      class="input"
-                      [value]="scheduleDateFilter()"
-                      (input)="scheduleDateFilter.set($any($event.target).value)">
+            <div class="schedule-layout-new">
+              <!-- Panel izquierdo: Calendario + Resumen -->
+              <aside class="schedule-sidebar">
+                <article class="sidebar-card calendar-card">
+                  <div class="calendar-header">
+                    <button type="button" class="calendar-nav" (click)="prevMonth()">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6"/>
+                      </svg>
+                    </button>
+                    <h3 class="calendar-month">{{ getMonthName() }}</h3>
+                    <button type="button" class="calendar-nav" (click)="nextMonth()">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 18l6-6-6-6"/>
+                      </svg>
+                    </button>
                   </div>
-                  <div class="schedule-filter">
-                    <label for="schedule-status">Estado</label>
-                    <select
-                      id="schedule-status"
-                      class="select"
-                      [value]="scheduleStatusFilter()"
-                      (change)="scheduleStatusFilter.set($any($event.target).value)">
-                      <option value="all">Todas</option>
-                      <option value="CONFIRMED">Confirmadas</option>
-                      <option value="COMPLETED">Completadas</option>
-                      <option value="pending-payment">Pago pendiente</option>
-                    </select>
+                  <div class="calendar-weekdays">
+                    <span>Do</span><span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sa</span>
+                  </div>
+                  <div class="calendar-grid">
+                    @for (day of calendarDays(); track $index) {
+                      <button
+                        type="button"
+                        class="calendar-day"
+                        [class.other-month]="!day.isCurrentMonth"
+                        [class.today]="day.isToday"
+                        [class.selected]="day.isSelected"
+                        (click)="selectDay(day)">
+                        {{ day.day }}
+                      </button>
+                    }
+                  </div>
+                  <div class="calendar-footer">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="3" y="4" width="18" height="18" rx="2"/>
+                      <path d="M16 2v4M8 2v4M3 10h18"/>
+                    </svg>
+                    <span>{{ formatLongDate(scheduleDateFilter()) }}</span>
+                  </div>
+                </article>
+
+                <article class="sidebar-card summary-card">
+                  <h3>Resumen del dia</h3>
+                  <div class="summary-badge">{{ formatLongDate(scheduleDateFilter()) }}</div>
+                  <div class="summary-stats">
+                    <div class="summary-row">
+                      <span>Reservas</span>
+                      <strong>{{ daySummary().totalReservations }}</strong>
+                    </div>
+                    <div class="summary-row">
+                      <span>Ingresos estimados</span>
+                      <strong>{{ daySummary().totalRevenue }}&#8364;</strong>
+                    </div>
+                    <div class="summary-row">
+                      <span>Pistas activas</span>
+                      <strong>{{ daySummary().activeCourts }}</strong>
+                    </div>
+                  </div>
+                </article>
+              </aside>
+
+              <!-- Panel central: Tabla de agenda -->
+              <article class="schedule-board-new">
+                <div class="schedule-header-bar">
+                  <div class="schedule-nav">
+                    <button type="button" class="btn btn-outline btn-sm" (click)="clearScheduleFilters()">Hoy</button>
+                    <button type="button" class="btn-nav" (click)="prevDay()">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M15 18l-6-6 6-6"/>
+                      </svg>
+                    </button>
+                    <button type="button" class="btn-nav" (click)="nextDay()">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 18l6-6-6-6"/>
+                      </svg>
+                    </button>
+                  </div>
+                  <h2 class="schedule-date-title">{{ formatLongDate(scheduleDateFilter()) }}</h2>
+                  <div class="schedule-legend">
+                    <span class="legend-item"><span class="legend-dot pending"></span> Pendiente</span>
+                    <span class="legend-item"><span class="legend-dot confirmed"></span> Confirmada</span>
+                    <span class="legend-item"><span class="legend-dot paid"></span> Pagada</span>
                   </div>
                 </div>
 
-                <div class="schedule-calendar" aria-label="Calendario de pistas">
+                <div class="schedule-calendar-new" aria-label="Calendario de pistas">
                   <div
-                    class="schedule-grid"
-                    [style.grid-template-columns]="'76px repeat(' + calendarCourts().length + ', minmax(150px, 1fr))'">
-                    <div class="schedule-cell schedule-head">Hora</div>
+                    class="schedule-grid-new"
+                    [style.grid-template-columns]="'76px repeat(' + calendarCourts().length + ', minmax(160px, 1fr))'">
+                    <div class="schedule-cell-new schedule-head-new">Hora</div>
                     @for (court of calendarCourts(); track court.id) {
-                      <div class="schedule-cell schedule-head">
+                      <div class="schedule-cell-new schedule-head-new">
                         <strong>{{ court.name }}</strong>
                         <span>{{ court.type }} &middot; {{ court.pricePerHour }}&#8364;/h</span>
                       </div>
                     }
 
                     @for (hour of calendarHours; track hour) {
-                      <div class="schedule-cell schedule-time">{{ formatHour(hour) }}</div>
+                      <div class="schedule-cell-new schedule-time-new">{{ formatHour(hour) }}</div>
                       @for (court of calendarCourts(); track court.id) {
-                        <div class="schedule-cell">
-                          @if (getCalendarReservation(court.id, hour); as reservation) {
+                        <div class="schedule-cell-new schedule-body-cell">
+                          @if (getMergedBlockForCell(court.id, hour); as block) {
                             <button
                               type="button"
-                              class="schedule-booking"
-                              [class.paid]="reservation.paymentStatus === 'PAID'"
-                              [class.pending]="reservation.paymentStatus === 'PENDING'"
-                              [class.completed]="reservation.status === 'COMPLETED'"
-                              (click)="selectReservation(reservation)">
-                              <strong>{{ reservation.customerName }}</strong>
-                              <span>{{ reservation.startTime }}:00-{{ reservation.endTime }}:00</span>
-                              <small>{{ getPaymentStatusLabel(reservation.paymentStatus) }}</small>
+                              class="schedule-booking-new"
+                              [class.paid]="block.reservation.paymentStatus === 'PAID'"
+                              [class.pending]="block.reservation.paymentStatus === 'PENDING'"
+                              [class.confirmed]="block.reservation.status === 'CONFIRMED'"
+                              [style.grid-row]="'span ' + block.duration"
+                              (click)="selectReservation(block.reservation)">
+                              <span class="booking-time">{{ block.startHour }}:00 - {{ block.endHour }}:00</span>
+                              <span class="booking-name">{{ block.reservation.customerName }}</span>
+                              <span class="booking-status">{{ getPaymentStatusLabel(block.reservation.paymentStatus) }}</span>
                             </button>
-                          } @else {
+                          } @else if (!isPartOfMergedBlock(court.id, hour) && !isPastSlot(hour)) {
                             <button
                               type="button"
-                              class="schedule-empty"
+                              class="schedule-empty-new"
                               (click)="openAdminBooking(court.id, court.name, hour)">
                               Libre
                             </button>
@@ -167,89 +198,51 @@
                     }
                   </div>
                 </div>
-
-                <div class="schedule-mobile" aria-label="Agenda movil por pista">
-                  @for (court of calendarCourts(); track court.id) {
-                    <section class="mobile-court-card">
-                      <header>
-                        <div>
-                          <strong>{{ court.name }}</strong>
-                          <span>{{ court.type }} &middot; {{ court.pricePerHour }}&#8364;/h</span>
-                        </div>
-                        <span class="mobile-court-status">Activa</span>
-                      </header>
-                      <div class="mobile-slot-list">
-                        @for (hour of calendarHours; track hour) {
-                          @if (getCalendarReservation(court.id, hour); as reservation) {
-                            <button
-                              type="button"
-                              class="mobile-slot booked"
-                              [class.paid]="reservation.paymentStatus === 'PAID'"
-                              [class.pending]="reservation.paymentStatus === 'PENDING'"
-                              [class.completed]="reservation.status === 'COMPLETED'"
-                              (click)="selectReservation(reservation)">
-                              <span class="mobile-slot-time">{{ formatHour(hour) }}</span>
-                              <span class="mobile-slot-main">
-                                <strong>{{ reservation.customerName }}</strong>
-                                <small>{{ reservation.startTime }}:00-{{ reservation.endTime }}:00 &middot; {{ getPaymentStatusLabel(reservation.paymentStatus) }}</small>
-                              </span>
-                            </button>
-                          } @else {
-                            <button
-                              type="button"
-                              class="mobile-slot free"
-                              (click)="openAdminBooking(court.id, court.name, hour)">
-                              <span class="mobile-slot-time">{{ formatHour(hour) }}</span>
-                              <span class="mobile-slot-main">
-                                <strong>Libre</strong>
-                                <small>Tocar para preparar reserva</small>
-                              </span>
-                            </button>
-                          }
-                        }
-                      </div>
-                    </section>
-                  }
-                </div>
               </article>
 
-              <aside class="schedule-side">
-                <!-- Mini booking form for empty slots -->
+              <!-- Panel derecho: Detalle -->
+              <aside class="schedule-side-new">
+                <!-- Formulario nueva reserva -->
                 @if (adminBookingSlot()) {
-                  <article class="side-card admin-mini-form">
-                    <div class="mini-form-header">
+                  <article class="side-card-new admin-mini-form-new">
+                    <div class="mini-form-header-new">
                       <h3>Nueva reserva</h3>
-                      <button type="button" class="mini-form-close" (click)="closeAdminBooking()">&#10005;</button>
+                      <button type="button" class="close-btn" (click)="closeAdminBooking()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M18 6L6 18M6 6l12 12"/>
+                        </svg>
+                      </button>
                     </div>
-                    <div class="mini-form-slot-info">
-                      <strong>{{ adminBookingSlot()!.courtName }}</strong>
-                      <span>{{ formatHour(adminBookingSlot()!.hour) }} &mdash; {{ scheduleDateFilter() }}</span>
+                    <div class="mini-form-slot-info-new">
+                      <span class="slot-time">{{ formatHour(adminBookingSlot()!.hour) }}</span>
+                      <span class="slot-date">{{ formatLongDate(scheduleDateFilter()) }}</span>
+                      <span class="slot-court">{{ adminBookingSlot()!.courtName }}</span>
                     </div>
                     <form (ngSubmit)="createAdminReservation()" #adminForm="ngForm">
-                      <div class="form-group">
+                      <div class="form-group-new">
                         <label>Nombre del cliente</label>
                         <input
                           type="text"
-                          class="input"
+                          class="input-new"
                           [(ngModel)]="adminFormData.customerName"
                           name="customerName"
                           required
                           placeholder="Nombre Apellido">
                       </div>
-                      <div class="form-group">
+                      <div class="form-group-new">
                         <label>Email</label>
                         <input
                           type="email"
-                          class="input"
+                          class="input-new"
                           [(ngModel)]="adminFormData.customerEmail"
                           name="customerEmail"
                           required
                           placeholder="email@ejemplo.com">
                       </div>
-                      <div class="form-group">
+                      <div class="form-group-new">
                         <label>Hora fin</label>
                         <select
-                          class="select"
+                          class="select-new"
                           [(ngModel)]="adminFormData.endTime"
                           name="endTime"
                           required>
@@ -259,65 +252,128 @@
                         </select>
                       </div>
                       @if (adminBookingError()) {
-                        <p class="mini-form-error">{{ adminBookingError() }}</p>
+                        <p class="form-error-new">{{ adminBookingError() }}</p>
                       }
-                      <div class="mini-form-actions">
-                        <button type="button" class="btn btn-outline btn-sm" (click)="closeAdminBooking()">Cancelar</button>
-                        <button type="submit" class="btn btn-primary btn-sm" [disabled]="adminBookingLoading()">
-                          {{ adminBookingLoading() ? 'Guardando...' : 'Confirmar' }}
+                      <div class="form-actions-new">
+                        <button type="button" class="btn-new btn-cancel" (click)="closeAdminBooking()">Cancelar</button>
+                        <button type="submit" class="btn-new btn-submit" [disabled]="adminBookingLoading()">
+                          {{ adminBookingLoading() ? 'Guardando...' : 'Crear reserva' }}
                         </button>
                       </div>
                     </form>
                   </article>
                 }
 
-                <article class="side-card">
-                  <h3>Detalle seleccionado</h3>
-                  @if (selectedReservation(); as reservation) {
-                    <div class="detail-stack">
-                      <p><span>Pista</span><strong>{{ reservation.court.name }}</strong></p>
-                      <p><span>Cliente</span><strong>{{ reservation.customerName }}</strong></p>
-                      <p><span>Email</span><strong>{{ reservation.customerEmail }}</strong></p>
-                      <p><span>Horario</span><strong>{{ reservation.startTime }}:00-{{ reservation.endTime }}:00</strong></p>
-                      <p><span>Total</span><strong>{{ reservation.totalPrice }}&#8364;</strong></p>
+                <!-- Detalle de reserva seleccionada -->
+                @if (selectedReservation(); as reservation) {
+                  <article class="side-card-new reservation-detail-new">
+                    <div class="detail-header-new">
+                      <h3>Detalle de la reserva</h3>
+                      <button type="button" class="close-btn" (click)="selectedReservation.set(null)">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M18 6L6 18M6 6l12 12"/>
+                        </svg>
+                      </button>
                     </div>
-                    <div class="quick-row">
+
+                    <div class="detail-status-new" [class.pending]="reservation.paymentStatus === 'PENDING'" [class.paid]="reservation.paymentStatus === 'PAID'">
+                      {{ reservation.status === 'CONFIRMED' ? 'Confirmada' : reservation.status === 'COMPLETED' ? 'Completada' : 'Pendiente' }}
+                    </div>
+
+                    <div class="detail-datetime-new">
+                      <div class="datetime-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <circle cx="12" cy="12" r="10"/>
+                          <path d="M12 6v6l4 2"/>
+                        </svg>
+                      </div>
+                      <div class="datetime-info">
+                        <span class="datetime-time">{{ reservation.startTime }}:00 - {{ reservation.endTime }}:00</span>
+                        <span class="datetime-date">{{ formatLongDate(reservation.date) }}</span>
+                      </div>
+                    </div>
+
+                    <div class="detail-court-new">
+                      <span class="court-label">Pista</span>
+                      <span class="court-name">{{ reservation.court.name }}</span>
+                    </div>
+
+                    <div class="detail-section-new">
+                      <div class="section-title-new">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                          <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        Cliente
+                      </div>
+                      <div class="detail-rows-new">
+                        <div class="detail-row-new">
+                          <span>Nombre</span>
+                          <strong>{{ reservation.customerName }}</strong>
+                        </div>
+                        <div class="detail-row-new">
+                          <span>Email</span>
+                          <strong>{{ reservation.customerEmail }}</strong>
+                        </div>
+                        @if (reservation.customerPhone) {
+                          <div class="detail-row-new">
+                            <span>Telefono</span>
+                            <strong>{{ reservation.customerPhone }}</strong>
+                          </div>
+                        }
+                      </div>
+                    </div>
+
+                    <div class="detail-section-new">
+                      <div class="section-title-new">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="1" y="4" width="22" height="16" rx="2"/>
+                          <path d="M1 10h22"/>
+                        </svg>
+                        Pago
+                      </div>
+                      <div class="detail-rows-new">
+                        <div class="detail-row-new">
+                          <span>Estado</span>
+                          <strong [class.pending-text]="reservation.paymentStatus === 'PENDING'" [class.paid-text]="reservation.paymentStatus === 'PAID'">
+                            {{ getPaymentStatusLabel(reservation.paymentStatus) }}
+                          </strong>
+                        </div>
+                        <div class="detail-row-new">
+                          <span>Importe</span>
+                          <strong>{{ reservation.totalPrice }}&#8364;</strong>
+                        </div>
+                        <div class="detail-row-new">
+                          <span>Metodo</span>
+                          <strong>{{ getPaymentMethodLabel(reservation.paymentMethod) }}</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="detail-actions-new">
+                      <button type="button" class="btn-new btn-cancel" (click)="updateReservationStatus(reservation.id, 'CANCELLED')">
+                        Cancelar reserva
+                      </button>
                       <select
-                        class="select-sm"
+                        class="select-new select-status"
                         [value]="reservation.paymentStatus"
                         (change)="updatePaymentStatus(reservation.id, $any($event.target).value)">
                         <option value="PENDING">Pendiente</option>
                         <option value="PAID">Pagado</option>
                       </select>
-                      <select
-                        class="select-sm"
-                        [value]="reservation.status"
-                        (change)="updateReservationStatus(reservation.id, $any($event.target).value)">
-                        <option value="CONFIRMED">Confirmada</option>
-                        <option value="COMPLETED">Completada</option>
-                        <option value="CANCELLED">Cancelada</option>
-                      </select>
                     </div>
-                  } @else {
-                    <p class="muted-copy">Selecciona una reserva para revisar datos, cobro y estado.</p>
-                    @if (!adminBookingSlot()) {
-                      <p class="muted-copy">O haz clic en un hueco <em>Libre</em> para crear una reserva.</p>
-                    }
-                  }
-                </article>
+                  </article>
+                }
 
-                <article class="side-card">
-                  <h3>Reservas recientes</h3>
-                  <div class="recent-list">
-                    @for (res of recentReservations(); track res.id) {
-                      <button type="button" class="recent-row" (click)="selectReservation(res)">
-                        <span>{{ res.startTime }}:00</span>
-                        <strong>{{ res.court.name }}</strong>
-                        <small [class.pending]="res.paymentStatus === 'PENDING'">{{ getPaymentStatusLabel(res.paymentStatus) }}</small>
-                      </button>
-                    }
-                  </div>
-                </article>
+                <!-- Mensaje cuando no hay nada seleccionado -->
+                @if (!selectedReservation() && !adminBookingSlot()) {
+                  <article class="side-card-new empty-detail-new">
+                    <h3>Detalle seleccionado</h3>
+                    <p>Selecciona una reserva para revisar datos, cobro y estado.</p>
+                    <p>O haz clic en un hueco <em>Libre</em> para crear una reserva.</p>
+                  </article>
+                }
+
               </aside>
             </div>
           </section>

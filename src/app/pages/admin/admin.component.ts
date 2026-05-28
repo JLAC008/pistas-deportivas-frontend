@@ -14,6 +14,22 @@ interface AdminBookingSlot {
   date: string;
 }
 
+interface MergedBlock {
+  reservation: Reservation;
+  courtId: string;
+  startHour: number;
+  endHour: number;
+  duration: number;
+}
+
+interface CalendarDay {
+  date: Date;
+  day: number;
+  isCurrentMonth: boolean;
+  isToday: boolean;
+  isSelected: boolean;
+}
+
 @Component({
   selector: 'app-admin',
   standalone: true,
@@ -46,6 +62,9 @@ class AdminComponent implements OnInit {
 
   reservationHours = Array.from({ length: 15 }, (_, index) => index + 8);
   calendarHours = Array.from({ length: 15 }, (_, index) => index + 8);
+
+  currentMonth = signal(new Date().getMonth());
+  currentYear = signal(new Date().getFullYear());
 
   courtForm = {
     name: '',
@@ -136,7 +155,7 @@ class AdminComponent implements OnInit {
   });
 
   calendarCourts = computed(() =>
-    this.courtService.courts().filter(court => court.isActive).slice(0, 5)
+    this.courtService.courts().filter(court => court.isActive)
   );
 
   scheduledReservations = computed(() => {
@@ -170,18 +189,190 @@ class AdminComponent implements OnInit {
     this.scheduledReservations().filter(reservation => reservation.paymentStatus === 'PENDING').length
   );
 
-  recentReservations = computed(() =>
-    [...this.reservationService.reservations()]
-      .filter(reservation => reservation.status !== 'CANCELLED')
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 5)
-  );
-
   endHourOptions = computed(() => {
     const slot = this.adminBookingSlot();
     if (!slot) return [];
     return Array.from({ length: 22 - slot.hour }, (_, i) => slot.hour + i + 1);
   });
+
+  daySummary = computed(() => {
+    const reservations = this.scheduledReservations();
+    const totalRevenue = reservations.reduce((sum, r) => sum + r.totalPrice, 0);
+    const activeCourts = this.activeCourtsCount();
+    return {
+      totalReservations: reservations.length,
+      totalRevenue,
+      activeCourts
+    };
+  });
+
+  calendarDays = computed(() => {
+    const year = this.currentYear();
+    const month = this.currentMonth();
+    const today = new Date();
+    const selectedDate = new Date(this.scheduleDateFilter());
+
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+
+    const startOffset = firstDay.getDay();
+    const daysInMonth = lastDay.getDate();
+
+    const days: CalendarDay[] = [];
+
+    for (let i = startOffset - 1; i >= 0; i--) {
+      const date = new Date(year, month, -i);
+      days.push({
+        date,
+        day: date.getDate(),
+        isCurrentMonth: false,
+        isToday: this.isSameDay(date, today),
+        isSelected: this.isSameDay(date, selectedDate)
+      });
+    }
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const date = new Date(year, month, d);
+      days.push({
+        date,
+        day: d,
+        isCurrentMonth: true,
+        isToday: this.isSameDay(date, today),
+        isSelected: this.isSameDay(date, selectedDate)
+      });
+    }
+
+    const remaining = 42 - days.length;
+    for (let d = 1; d <= remaining; d++) {
+      const date = new Date(year, month + 1, d);
+      days.push({
+        date,
+        day: d,
+        isCurrentMonth: false,
+        isToday: this.isSameDay(date, today),
+        isSelected: this.isSameDay(date, selectedDate)
+      });
+    }
+
+    return days;
+  });
+
+  mergedBlocks = computed(() => {
+    const reservations = this.scheduledReservations();
+    const blocks: MergedBlock[] = [];
+
+    const byCourt = new Map<string, Reservation[]>();
+    for (const r of reservations) {
+      const list = byCourt.get(r.court.id) || [];
+      list.push(r);
+      byCourt.set(r.court.id, list);
+    }
+
+    for (const [courtId, courtReservations] of byCourt) {
+      const sorted = [...courtReservations].sort((a, b) => a.startTime - b.startTime);
+      const merged: MergedBlock[] = [];
+      let current: MergedBlock | null = null;
+
+      for (const res of sorted) {
+        if (current && current.endHour === res.startTime && current.reservation.customerName === res.customerName && current.reservation.customerEmail === res.customerEmail) {
+          current.endHour = res.endTime;
+          current.duration = current.endHour - current.startHour;
+        } else {
+          if (current) merged.push(current);
+          current = {
+            reservation: res,
+            courtId,
+            startHour: res.startTime,
+            endHour: res.endTime,
+            duration: res.endTime - res.startTime
+          };
+        }
+      }
+      if (current) merged.push(current);
+      blocks.push(...merged);
+    }
+
+    return blocks;
+  });
+
+  private isSameDay(d1: Date, d2: Date): boolean {
+    return d1.getFullYear() === d2.getFullYear() &&
+           d1.getMonth() === d2.getMonth() &&
+           d1.getDate() === d2.getDate();
+  }
+
+  prevMonth(): void {
+    if (this.currentMonth() === 0) {
+      this.currentMonth.set(11);
+      this.currentYear.update(y => y - 1);
+    } else {
+      this.currentMonth.update(m => m - 1);
+    }
+  }
+
+  nextMonth(): void {
+    if (this.currentMonth() === 11) {
+      this.currentMonth.set(0);
+      this.currentYear.update(y => y + 1);
+    } else {
+      this.currentMonth.update(m => m + 1);
+    }
+  }
+
+  selectDay(day: CalendarDay): void {
+    const dateStr = this.toDateInputValue(day.date);
+    this.scheduleDateFilter.set(dateStr);
+  }
+
+  prevDay(): void {
+    const current = new Date(this.scheduleDateFilter());
+    current.setDate(current.getDate() - 1);
+    this.scheduleDateFilter.set(this.toDateInputValue(current));
+  }
+
+  nextDay(): void {
+    const current = new Date(this.scheduleDateFilter());
+    current.setDate(current.getDate() + 1);
+    this.scheduleDateFilter.set(this.toDateInputValue(current));
+  }
+
+  getMonthName(): string {
+    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    return `${months[this.currentMonth()]} ${this.currentYear()}`;
+  }
+
+  formatLongDate(dateStr: string): string {
+    const days = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+    const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+                    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    const date = new Date(dateStr + 'T00:00:00');
+    return `${days[date.getDay()]}, ${date.getDate()} de ${months[date.getMonth()]} ${date.getFullYear()}`;
+  }
+
+  isPastSlot(hour: number): boolean {
+    const today = this.toDateInputValue(new Date());
+    if (this.scheduleDateFilter() !== today) return false;
+    const currentHour = new Date().getHours();
+    return hour < currentHour;
+  }
+
+  getMergedBlockForCell(courtId: string, hour: number): MergedBlock | null {
+    const block = this.mergedBlocks().find(b =>
+      b.courtId === courtId && b.startHour === hour
+    );
+    return block || null;
+  }
+
+  isPartOfMergedBlock(courtId: string, hour: number): boolean {
+    return this.mergedBlocks().some(b =>
+      b.courtId === courtId && hour > b.startHour && hour < b.endHour
+    );
+  }
+
+  getBlockHeight(block: MergedBlock): number {
+    return block.duration * 52;
+  }
 
   getCalendarReservation(courtId: string, hour: number): Reservation | null {
     return this.scheduledReservations().find(reservation =>
