@@ -1,4 +1,4 @@
-import {Component, computed, inject, signal, OnInit} from '@angular/core';
+import {Component, computed, inject, signal, OnInit, AfterViewInit, ElementRef, ViewChild} from '@angular/core';
 import {CommonModule} from '@angular/common';
 import {FormsModule} from '@angular/forms';
 import {RouterLink} from '@angular/router';
@@ -37,10 +37,12 @@ interface CalendarDay {
   templateUrl: './admin.component.html',
   styleUrls: ['./admin.component.css']
 })
-class AdminComponent implements OnInit {
+class AdminComponent implements OnInit, AfterViewInit {
   authService = inject(AuthService);
   courtService = inject(CourtService);
   reservationService = inject(ReservationService);
+
+  @ViewChild('mobileCalendarStrip') mobileCalendarStrip!: ElementRef;
 
   activeTab = signal<'schedule' | 'courts' | 'reservations' | 'stats'>('schedule');
   showAddCourtModal = signal(false);
@@ -58,7 +60,18 @@ class AdminComponent implements OnInit {
   adminBookingSlot = signal<AdminBookingSlot | null>(null);
   adminBookingLoading = signal(false);
   adminBookingError = signal('');
-  adminFormData = { customerName: '', customerEmail: '', endTime: 0 };
+  adminFormData = { customerName: '', customerEmail: '', customerPhone: '', endTime: 0 };
+
+  // Multi-slot selection for booking multiple hours
+  selectedSlots = signal<{courtId: string; courtName: string; hour: number; date: string}[]>([]);
+  isRangeSelecting = signal(false);
+
+  // Mobile reservation modal
+  showMobileReservationModal = signal(false);
+  mobileReservationCourt = signal('');
+  mobileReservationHour = signal('');
+  mobileCourtFilter = signal<string>('all');
+  mobileReservationForm = { customerName: '', customerEmail: '', customerPhone: '' };
 
   reservationHours = Array.from({ length: 15 }, (_, index) => index + 8);
   calendarHours = Array.from({ length: 15 }, (_, index) => index + 8);
@@ -81,10 +94,26 @@ class AdminComponent implements OnInit {
     this.reservationService.loadAll();
   }
 
+  ngAfterViewInit() {
+    setTimeout(() => this.scrollToToday(), 100);
+  }
+
+  scrollToToday() {
+    if (!this.mobileCalendarStrip) return;
+    const strip = this.mobileCalendarStrip.nativeElement;
+    const todayEl = strip.querySelector('.today');
+    if (todayEl) {
+      todayEl.scrollIntoView({ inline: 'center', block: 'nearest' });
+    }
+  }
+
   switchTab(tab: 'schedule' | 'courts' | 'reservations' | 'stats'): void {
     this.activeTab.set(tab);
     if (tab === 'courts') this.courtService.loadAdminAll();
     if (tab === 'reservations' || tab === 'schedule' || tab === 'stats') this.reservationService.loadAll();
+    if (tab === 'schedule') {
+      setTimeout(() => this.scrollToToday(), 100);
+    }
   }
 
   activeCourtsCount = computed(() =>
@@ -158,6 +187,25 @@ class AdminComponent implements OnInit {
     this.courtService.courts().filter(court => court.isActive)
   );
 
+  // Mobile: timeline blocks filtered by court
+  mobileTimelineBlocks = computed(() => {
+    const blocks = this.mergedBlocks();
+    const courtFilter = this.mobileCourtFilter();
+    if (courtFilter === 'all') return blocks;
+    return blocks.filter(b => b.courtId === courtFilter);
+  });
+
+  // Mobile: available hours for a given court (no overlapping reservations)
+  mobileAvailableHours = computed(() => {
+    const courtId = this.mobileReservationCourt();
+    if (!courtId) return [];
+    const date = this.scheduleDateFilter();
+    const existing = this.scheduledReservations().filter(r => r.court.id === courtId && r.date === date);
+    return this.calendarHours.filter(hour =>
+      !existing.some(r => hour >= r.startTime && hour < r.endTime)
+    );
+  });
+
   scheduledReservations = computed(() => {
     const dateFilter = this.scheduleDateFilter();
     const statusFilter = this.scheduleStatusFilter();
@@ -189,10 +237,40 @@ class AdminComponent implements OnInit {
     this.scheduledReservations().filter(reservation => reservation.paymentStatus === 'PENDING').length
   );
 
-  endHourOptions = computed(() => {
-    const slot = this.adminBookingSlot();
-    if (!slot) return [];
-    return Array.from({ length: 22 - slot.hour }, (_, i) => slot.hour + i + 1);
+  selectedTimeRange = computed(() => {
+    const slots = this.selectedSlots();
+    if (slots.length === 0) return null;
+    const hours = slots.map(s => s.hour).sort((a, b) => a - b);
+    return {
+      start: hours[0],
+      end: hours[hours.length - 1] + 1,
+      count: slots.length,
+      courtName: slots[0].courtName,
+      courtId: slots[0].courtId
+    };
+  });
+
+  // P1: Selection blocks (like merged blocks but for multi-slot selection)
+  selectionBlocks = computed(() => {
+    const slots = this.selectedSlots();
+    if (slots.length === 0) return [];
+    const hours = slots.map(s => s.hour).sort((a, b) => a - b);
+    return [{
+      courtId: slots[0].courtId,
+      courtName: slots[0].courtName,
+      startHour: hours[0],
+      endHour: hours[hours.length - 1] + 1,
+      duration: hours[hours.length - 1] + 1 - hours[0]
+    }];
+  });
+
+  // P4: Calendar limits
+  firstReservationDate = computed(() => {
+    const reservations = this.reservationService.reservations()
+      .filter(r => r.status !== 'CANCELLED');
+    if (reservations.length === 0) return null;
+    const dates = reservations.map(r => new Date(r.date + 'T00:00:00').getTime());
+    return new Date(Math.min(...dates));
   });
 
   daySummary = computed(() => {
@@ -257,6 +335,43 @@ class AdminComponent implements OnInit {
     return days;
   });
 
+  // Mobile: backwards to first reservation + forwards 3 months
+  mobileCalendarDays = computed(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selectedDate = new Date(this.scheduleDateFilter());
+
+    const maxDate = new Date(today);
+    maxDate.setMonth(maxDate.getMonth() + 3);
+
+    const reservations = this.reservationService.reservations()
+      .filter(r => r.status !== 'CANCELLED');
+
+    let minDate: Date;
+    if (reservations.length > 0) {
+      const timestamps = reservations.map(r => new Date(r.date + 'T00:00:00').getTime());
+      minDate = new Date(Math.min(...timestamps));
+    } else {
+      minDate = new Date(today);
+      minDate.setDate(minDate.getDate() - 7);
+    }
+
+    const days: CalendarDay[] = [];
+    const current = new Date(minDate);
+    while (current <= maxDate) {
+      days.push({
+        date: new Date(current),
+        day: current.getDate(),
+        isCurrentMonth: true,
+        isToday: this.isSameDay(current, today),
+        isSelected: this.isSameDay(current, selectedDate)
+      });
+      current.setDate(current.getDate() + 1);
+    }
+
+    return days;
+  });
+
   mergedBlocks = computed(() => {
     const reservations = this.scheduledReservations();
     const blocks: MergedBlock[] = [];
@@ -301,7 +416,53 @@ class AdminComponent implements OnInit {
            d1.getDate() === d2.getDate();
   }
 
+  // P4: Calendar navigation limits
+  private getMinMonth(): { year: number; month: number } {
+    const first = this.firstReservationDate();
+    if (!first) {
+      const today = new Date();
+      return { year: today.getFullYear(), month: today.getMonth() };
+    }
+    return { year: first.getFullYear(), month: first.getMonth() };
+  }
+
+  private getMaxMonth(): { year: number; month: number } {
+    const today = new Date();
+    let maxMonth = today.getMonth() + 3;
+    let maxYear = today.getFullYear();
+    while (maxMonth > 11) {
+      maxMonth -= 12;
+      maxYear += 1;
+    }
+    return { year: maxYear, month: maxMonth };
+  }
+
+  canGoPrevMonth(): boolean {
+    const cur = { year: this.currentYear(), month: this.currentMonth() };
+    const min = this.getMinMonth();
+    return cur.year > min.year || (cur.year === min.year && cur.month > min.month);
+  }
+
+  canGoNextMonth(): boolean {
+    const cur = { year: this.currentYear(), month: this.currentMonth() };
+    const max = this.getMaxMonth();
+    return cur.year < max.year || (cur.year === max.year && cur.month < max.month);
+  }
+
+  isDayDisabled(day: CalendarDay): boolean {
+    if (!day.isCurrentMonth) return true;
+    const dayDate = day.date;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const min = this.getMinMonth();
+    const max = this.getMaxMonth();
+    const minDate = new Date(min.year, min.month, 1);
+    const maxDate = new Date(max.year, max.month + 1, 0);
+    return dayDate < minDate || dayDate > maxDate;
+  }
+
   prevMonth(): void {
+    if (!this.canGoPrevMonth()) return;
     if (this.currentMonth() === 0) {
       this.currentMonth.set(11);
       this.currentYear.update(y => y - 1);
@@ -311,6 +472,7 @@ class AdminComponent implements OnInit {
   }
 
   nextMonth(): void {
+    if (!this.canGoNextMonth()) return;
     if (this.currentMonth() === 11) {
       this.currentMonth.set(0);
       this.currentYear.update(y => y + 1);
@@ -320,20 +482,62 @@ class AdminComponent implements OnInit {
   }
 
   selectDay(day: CalendarDay): void {
+    if (this.isDayDisabled(day)) return;
     const dateStr = this.toDateInputValue(day.date);
     this.scheduleDateFilter.set(dateStr);
+    this.syncCalendarToDate(day.date);
   }
 
   prevDay(): void {
     const current = new Date(this.scheduleDateFilter());
     current.setDate(current.getDate() - 1);
     this.scheduleDateFilter.set(this.toDateInputValue(current));
+    this.syncCalendarToDate(current);
   }
 
   nextDay(): void {
     const current = new Date(this.scheduleDateFilter());
     current.setDate(current.getDate() + 1);
     this.scheduleDateFilter.set(this.toDateInputValue(current));
+    this.syncCalendarToDate(current);
+  }
+
+  canGoPrevDay(): boolean {
+    const current = new Date(this.scheduleDateFilter());
+    const min = this.getMinMobileDate();
+    current.setHours(0, 0, 0, 0);
+    return current > min;
+  }
+
+  canGoNextDay(): boolean {
+    const current = new Date(this.scheduleDateFilter());
+    const max = this.getMaxMobileDate();
+    current.setHours(0, 0, 0, 0);
+    return current < max;
+  }
+
+  private getMinMobileDate(): Date {
+    const reservations = this.reservationService.reservations()
+      .filter(r => r.status !== 'CANCELLED');
+    if (reservations.length > 0) {
+      const timestamps = reservations.map(r => new Date(r.date + 'T00:00:00').getTime());
+      return new Date(Math.min(...timestamps));
+    }
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d;
+  }
+
+  private getMaxMobileDate(): Date {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 3);
+    return d;
+  }
+
+  // P5 + P6: Sync left calendar to the selected date's month
+  syncCalendarToDate(date: Date): void {
+    this.currentMonth.set(date.getMonth());
+    this.currentYear.set(date.getFullYear());
   }
 
   getMonthName(): string {
@@ -352,6 +556,7 @@ class AdminComponent implements OnInit {
 
   isPastSlot(hour: number): boolean {
     const today = this.toDateInputValue(new Date());
+    if (this.scheduleDateFilter() < today) return true;
     if (this.scheduleDateFilter() !== today) return false;
     const currentHour = new Date().getHours();
     return hour < currentHour;
@@ -370,6 +575,26 @@ class AdminComponent implements OnInit {
     );
   }
 
+  // P1: Selection block helpers
+  getSelectionBlockForCell(courtId: string, hour: number): { courtId: string; courtName: string; startHour: number; endHour: number; duration: number } | null {
+    const block = this.selectionBlocks().find(b =>
+      b.courtId === courtId && b.startHour === hour
+    );
+    return block || null;
+  }
+
+  isPartOfSelection(courtId: string, hour: number): boolean {
+    return this.selectionBlocks().some(b =>
+      b.courtId === courtId && hour > b.startHour && hour < b.endHour
+    );
+  }
+
+  // P3: Past date check
+  isPastDate(): boolean {
+    const today = this.toDateInputValue(new Date());
+    return this.scheduleDateFilter() < today;
+  }
+
   getBlockHeight(block: MergedBlock): number {
     return block.duration * 52;
   }
@@ -386,28 +611,65 @@ class AdminComponent implements OnInit {
     return `${hour.toString().padStart(2, '0')}:00`;
   }
 
+  toggleSlot(courtId: string, courtName: string, hour: number): void {
+    const current = this.selectedSlots();
+    const existingIdx = current.findIndex(s => s.courtId === courtId && s.hour === hour);
+
+    if (existingIdx >= 0) {
+      current.splice(existingIdx, 1);
+      this.selectedSlots.set([...current]);
+    } else {
+      if (current.length > 0 && current[0].courtId !== courtId) {
+        this.selectedSlots.set([{ courtId, courtName, hour, date: this.scheduleDateFilter() }]);
+      } else {
+        this.selectedSlots.set([...current, { courtId, courtName, hour, date: this.scheduleDateFilter() }]);
+      }
+    }
+
+    this.selectedReservation.set(null);
+
+    if (this.selectedSlots().length === 0) {
+      this.closeAdminBooking();
+    } else {
+      this.adminBookingError.set('');
+      this.adminBookingSlot.set({
+        courtId,
+        courtName,
+        hour: this.selectedSlots()[0].hour,
+        date: this.scheduleDateFilter()
+      });
+    }
+  }
+
+  isSlotSelected(courtId: string, hour: number): boolean {
+    return this.selectedSlots().some(s => s.courtId === courtId && s.hour === hour);
+  }
+
   selectReservation(reservation: Reservation): void {
     this.selectedReservation.set(reservation);
-    this.closeAdminBooking();
+    this.selectedSlots.set([]);
+    this.adminBookingSlot.set(null);
   }
 
   openAdminBooking(courtId: string, courtName: string, hour: number): void {
     this.selectedReservation.set(null);
     this.adminBookingError.set('');
-    this.adminFormData = { customerName: '', customerEmail: '', endTime: hour + 1 };
+    this.adminFormData = { customerName: '', customerEmail: '', customerPhone: '', endTime: hour + 1 };
+    this.selectedSlots.set([{ courtId, courtName, hour, date: this.scheduleDateFilter() }]);
     this.adminBookingSlot.set({ courtId, courtName, hour, date: this.scheduleDateFilter() });
   }
 
   closeAdminBooking(): void {
+    this.selectedSlots.set([]);
     this.adminBookingSlot.set(null);
     this.adminBookingError.set('');
   }
 
   createAdminReservation(): void {
-    const slot = this.adminBookingSlot();
-    if (!slot) return;
+    const timeRange = this.selectedTimeRange();
+    if (!timeRange) return;
 
-    const { customerName, customerEmail, endTime } = this.adminFormData;
+    const { customerName, customerEmail, customerPhone } = this.adminFormData;
     if (!customerName.trim() || !customerEmail.trim()) {
       this.adminBookingError.set('Nombre y email son obligatorios.');
       return;
@@ -417,12 +679,13 @@ class AdminComponent implements OnInit {
     this.adminBookingError.set('');
 
     this.reservationService.create({
-      courtId: slot.courtId,
+      courtId: timeRange.courtId,
       customerName: customerName.trim(),
       customerEmail: customerEmail.trim(),
-      date: slot.date,
-      startTime: slot.hour,
-      endTime,
+      customerPhone: customerPhone.trim() || undefined,
+      date: this.scheduleDateFilter(),
+      startTime: timeRange.start,
+      endTime: timeRange.end,
       paymentMethod: 'ONSITE'
     }).subscribe({
       next: () => {
@@ -438,10 +701,13 @@ class AdminComponent implements OnInit {
   }
 
   clearScheduleFilters(): void {
-    this.scheduleDateFilter.set(this.toDateInputValue(new Date()));
+    const today = new Date();
+    this.scheduleDateFilter.set(this.toDateInputValue(today));
+    this.syncCalendarToDate(today);
     this.scheduleStatusFilter.set('all');
     this.selectedReservation.set(null);
     this.closeAdminBooking();
+    this.selectedSlots.set([]);
   }
 
   clearReservationFilters(): void {
@@ -616,6 +882,58 @@ class AdminComponent implements OnInit {
       case 'FAILED': return 'Fallido';
       default: return status;
     }
+  }
+
+  getDayShortName(date: Date): string {
+    const names = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'];
+    return names[date.getDay()];
+  }
+
+  // Mobile reservation modal
+  openMobileReservation(): void {
+    this.mobileReservationForm = { customerName: '', customerEmail: '', customerPhone: '' };
+    this.mobileReservationCourt.set('');
+    this.mobileReservationHour.set('');
+    this.showMobileReservationModal.set(true);
+  }
+
+  closeMobileReservation(): void {
+    this.showMobileReservationModal.set(false);
+  }
+
+  createMobileReservation(): void {
+    const courtId = this.mobileReservationCourt();
+    const hour = Number(this.mobileReservationHour());
+    const { customerName, customerEmail, customerPhone } = this.mobileReservationForm;
+
+    if (!courtId || !hour || !customerName.trim() || !customerEmail.trim()) return;
+
+    const court = this.calendarCourts().find(c => c.id === courtId);
+    if (!court) return;
+
+    this.adminBookingLoading.set(true);
+    this.adminBookingError.set('');
+
+    this.reservationService.create({
+      courtId,
+      customerName: customerName.trim(),
+      customerEmail: customerEmail.trim(),
+      customerPhone: customerPhone.trim() || undefined,
+      date: this.scheduleDateFilter(),
+      startTime: hour,
+      endTime: hour + 1,
+      paymentMethod: 'ONSITE'
+    }).subscribe({
+      next: () => {
+        this.adminBookingLoading.set(false);
+        this.closeMobileReservation();
+        this.reservationService.loadAll();
+      },
+      error: (err) => {
+        this.adminBookingLoading.set(false);
+        this.adminBookingError.set(err?.error?.message || 'Error al crear la reserva.');
+      }
+    });
   }
 }
 

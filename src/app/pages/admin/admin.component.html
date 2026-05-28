@@ -1,28 +1,5 @@
     @if (authService.isLoggedIn()) {
       <section class="admin-panel">
-        <div class="admin-header">
-          <span class="admin-header-kicker">Panel de Administracion</span>
-          <div class="admin-header-meta">
-            <span>
-              <svg class="admin-icon admin-icon-lg stat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="4" y="4" width="16" height="16" rx="2" />
-                <path d="M12 4v16M4 12h16" />
-                <circle cx="12" cy="12" r="1.6" />
-              </svg>
-              <strong>{{ activeCourtsCount() }}</strong>
-              <small>Pistas activas</small>
-            </span>
-            <span>
-              <svg class="admin-icon admin-icon-lg stat-icon stat-icon-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="4" y="5" width="16" height="15" rx="2" />
-                <path d="M8 3v4M16 3v4M4 10h16" />
-              </svg>
-              <strong>{{ reservationService.reservations().length }}</strong>
-              <small>Reservas</small>
-            </span>
-          </div>
-        </div>
-
         <div class="admin-tabs">
           <button
             class="tab-btn"
@@ -75,13 +52,13 @@
               <aside class="schedule-sidebar">
                 <article class="sidebar-card calendar-card">
                   <div class="calendar-header">
-                    <button type="button" class="calendar-nav" (click)="prevMonth()">
+                    <button type="button" class="calendar-nav" [class.disabled]="!canGoPrevMonth()" [disabled]="!canGoPrevMonth()" (click)="prevMonth()">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M15 18l-6-6 6-6"/>
                       </svg>
                     </button>
                     <h3 class="calendar-month">{{ getMonthName() }}</h3>
-                    <button type="button" class="calendar-nav" (click)="nextMonth()">
+                    <button type="button" class="calendar-nav" [class.disabled]="!canGoNextMonth()" [disabled]="!canGoNextMonth()" (click)="nextMonth()">
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M9 18l6-6-6-6"/>
                       </svg>
@@ -98,6 +75,8 @@
                         [class.other-month]="!day.isCurrentMonth"
                         [class.today]="day.isToday"
                         [class.selected]="day.isSelected"
+                        [class.disabled]="isDayDisabled(day)"
+                        [disabled]="isDayDisabled(day)"
                         (click)="selectDay(day)">
                         {{ day.day }}
                       </button>
@@ -113,8 +92,9 @@
                 </article>
 
                 <article class="sidebar-card summary-card">
-                  <h3>Resumen del dia</h3>
-                  <div class="summary-badge">{{ formatLongDate(scheduleDateFilter()) }}</div>
+                  <div class="summary-day-wrap">
+                    <span class="summary-day-label">Resumen del dia</span>
+                  </div>
                   <div class="summary-stats">
                     <div class="summary-row">
                       <span>Reservas</span>
@@ -159,7 +139,7 @@
                 <div class="schedule-calendar-new" aria-label="Calendario de pistas">
                   <div
                     class="schedule-grid-new"
-                    [style.grid-template-columns]="'76px repeat(' + calendarCourts().length + ', minmax(160px, 1fr))'">
+                    [style.grid-template-columns]="'76px repeat(' + calendarCourts().length + ', minmax(140px, 1fr))'">
                     <div class="schedule-cell-new schedule-head-new">Hora</div>
                     @for (court of calendarCourts(); track court.id) {
                       <div class="schedule-cell-new schedule-head-new">
@@ -168,32 +148,53 @@
                       </div>
                     }
 
-                    @for (hour of calendarHours; track hour) {
-                      <div class="schedule-cell-new schedule-time-new">{{ formatHour(hour) }}</div>
-                      @for (court of calendarCourts(); track court.id) {
-                        <div class="schedule-cell-new schedule-body-cell">
-                          @if (getMergedBlockForCell(court.id, hour); as block) {
+                    @for (hour of calendarHours; track hour; let hourIdx = $index) {
+                      <div class="schedule-cell-new schedule-time-new" [style.grid-column]="'1'" [style.grid-row]="hourIdx + 2">{{ formatHour(hour) }}</div>
+                      @for (court of calendarCourts(); track court.id; let courtIdx = $index) {
+                        @if (getMergedBlockForCell(court.id, hour); as block) {
+                          <div class="schedule-cell-new schedule-body-cell" [style.grid-column]="courtIdx + 2" [style.grid-row]="(hourIdx + 2) + ' / span ' + block.duration">
                             <button
                               type="button"
                               class="schedule-booking-new"
                               [class.paid]="block.reservation.paymentStatus === 'PAID'"
                               [class.pending]="block.reservation.paymentStatus === 'PENDING'"
                               [class.confirmed]="block.reservation.status === 'CONFIRMED'"
-                              [style.grid-row]="'span ' + block.duration"
                               (click)="selectReservation(block.reservation)">
                               <span class="booking-time">{{ block.startHour }}:00 - {{ block.endHour }}:00</span>
                               <span class="booking-name">{{ block.reservation.customerName }}</span>
                               <span class="booking-status">{{ getPaymentStatusLabel(block.reservation.paymentStatus) }}</span>
                             </button>
-                          } @else if (!isPartOfMergedBlock(court.id, hour) && !isPastSlot(hour)) {
+                          </div>
+                        } @else if (getSelectionBlockForCell(court.id, hour); as selBlock) {
+                          <div class="schedule-cell-new schedule-body-cell" [style.grid-column]="courtIdx + 2" [style.grid-row]="(hourIdx + 2) + ' / span ' + selBlock.duration">
+                            <button
+                              type="button"
+                              class="schedule-selection-new"
+                              (click)="toggleSlot(court.id, court.name, hour)">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <path d="M20 6 9 17l-5-5"/>
+                              </svg>
+                              <span class="selection-time">{{ selBlock.startHour }}:00 - {{ selBlock.endHour }}:00</span>
+                              <span class="selection-hint">{{ selBlock.duration }} {{ selBlock.duration === 1 ? 'hora' : 'horas' }}</span>
+                            </button>
+                          </div>
+                          } @else if (!isPartOfMergedBlock(court.id, hour) && !isPartOfSelection(court.id, hour) && !isPastSlot(hour)) {
+                          <div class="schedule-cell-new schedule-body-cell" [style.grid-column]="courtIdx + 2" [style.grid-row]="hourIdx + 2">
                             <button
                               type="button"
                               class="schedule-empty-new"
-                              (click)="openAdminBooking(court.id, court.name, hour)">
-                              Libre
+                              [class.selected]="isSlotSelected(court.id, hour)"
+                              (click)="toggleSlot(court.id, court.name, hour)">
+                              @if (isSlotSelected(court.id, hour)) {
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                  <path d="M20 6 9 17l-5-5"/>
+                                </svg>
+                              } @else {
+                                Libre
+                              }
                             </button>
+                          </div>
                           }
-                        </div>
                       }
                     }
                   </div>
@@ -203,7 +204,7 @@
               <!-- Panel derecho: Detalle -->
               <aside class="schedule-side-new">
                 <!-- Formulario nueva reserva -->
-                @if (adminBookingSlot()) {
+                @if (adminBookingSlot(); as slot) {
                   <article class="side-card-new admin-mini-form-new">
                     <div class="mini-form-header-new">
                       <h3>Nueva reserva</h3>
@@ -214,9 +215,14 @@
                       </button>
                     </div>
                     <div class="mini-form-slot-info-new">
-                      <span class="slot-time">{{ formatHour(adminBookingSlot()!.hour) }}</span>
+                      @if (selectedTimeRange(); as range) {
+                        <span class="slot-time">{{ formatHour(range.start) }} — {{ formatHour(range.end) }}</span>
+                        <span class="slot-range-hint">{{ range.count }} {{ range.count === 1 ? 'hora' : 'horas' }}</span>
+                      } @else {
+                        <span class="slot-time">{{ formatHour(slot.hour) }}</span>
+                      }
                       <span class="slot-date">{{ formatLongDate(scheduleDateFilter()) }}</span>
-                      <span class="slot-court">{{ adminBookingSlot()!.courtName }}</span>
+                      <span class="slot-court">{{ slot.courtName }}</span>
                     </div>
                     <form (ngSubmit)="createAdminReservation()" #adminForm="ngForm">
                       <div class="form-group-new">
@@ -240,16 +246,13 @@
                           placeholder="email@ejemplo.com">
                       </div>
                       <div class="form-group-new">
-                        <label>Hora fin</label>
-                        <select
-                          class="select-new"
-                          [(ngModel)]="adminFormData.endTime"
-                          name="endTime"
-                          required>
-                          @for (h of endHourOptions(); track h) {
-                            <option [value]="h">{{ formatHour(h) }}</option>
-                          }
-                        </select>
+                        <label>Telefono</label>
+                        <input
+                          type="tel"
+                          class="input-new"
+                          [(ngModel)]="adminFormData.customerPhone"
+                          name="customerPhone"
+                          placeholder="+34 600 000 000">
                       </div>
                       @if (adminBookingError()) {
                         <p class="form-error-new">{{ adminBookingError() }}</p>
@@ -370,16 +373,90 @@
                   <article class="side-card-new empty-detail-new">
                     <h3>Detalle seleccionado</h3>
                     <p>Selecciona una reserva para revisar datos, cobro y estado.</p>
-                    <p>O haz clic en un hueco <em>Libre</em> para crear una reserva.</p>
+                    <p>Haz clic en uno o varios huecos <em>Libre</em> para crear una reserva.</p>
+                    <span class="empty-hint">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M12 5v14M5 12h14"/>
+                      </svg>
+                      Seleccion multiple
+                    </span>
                   </article>
                 }
 
               </aside>
             </div>
           </section>
-        }
 
-        <!-- Courts Management -->
+          <!-- Mobile Schedule View -->
+          <section class="schedule-mobile-view">
+            <div class="mobile-top-bar">
+              <div class="mobile-date-nav">
+                <button type="button" class="mobile-arrow" [disabled]="!canGoPrevDay()" (click)="prevDay()">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <span class="mobile-date-text">{{ formatLongDate(scheduleDateFilter()) }}</span>
+                <button type="button" class="mobile-arrow" [disabled]="!canGoNextDay()" (click)="nextDay()">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+              </div>
+              <button type="button" class="mobile-today-btn" (click)="clearScheduleFilters()">Hoy</button>
+            </div>
+
+            <div class="mobile-calendar-strip" #mobileCalendarStrip>
+              @for (day of mobileCalendarDays(); track $index) {
+                <button
+                  type="button"
+                  class="mobile-day-chip"
+                  [class.selected]="day.isSelected"
+                  [disabled]="isDayDisabled(day)"
+                  (click)="selectDay(day)">
+                  <span class="mobile-day-name">{{ getDayShortName(day.date) }}</span>
+                  <span class="mobile-day-num">{{ day.day }}</span>
+                </button>
+              }
+            </div>
+
+            <div class="mobile-court-select-row">
+              <label class="mobile-court-label">Pista</label>
+              <select class="mobile-court-select" [value]="mobileCourtFilter()" (change)="mobileCourtFilter.set($any($event.target).value)">
+                <option value="all">Todas</option>
+                @for (court of calendarCourts(); track court.id) {
+                  <option [value]="court.id">{{ court.name }}</option>
+                }
+              </select>
+            </div>
+
+            <div class="mobile-timeline">
+              @for (block of mobileTimelineBlocks(); track $index) {
+                <div class="tl-item">
+                  <div class="tl-time">{{ formatHour(block.startHour) }}</div>
+                  <div
+                    class="tl-card"
+                    [class.tl-booked]="block.reservation.status === 'CONFIRMED'"
+                    [class.tl-pending]="block.reservation.paymentStatus === 'PENDING'"
+                    [class.tl-paid]="block.reservation.paymentStatus === 'PAID'">
+                    <div class="tl-card-top">
+                      <span class="tl-court">{{ block.reservation.court.name }}</span>
+                      <span
+                        class="tl-pill"
+                        [class.tl-pill-confirmed]="block.reservation.status === 'CONFIRMED'"
+                        [class.tl-pill-pending]="block.reservation.paymentStatus === 'PENDING'"
+                        [class.tl-pill-paid]="block.reservation.paymentStatus === 'PAID'">
+                        {{ getPaymentStatusLabel(block.reservation.paymentStatus) }}
+                      </span>
+                    </div>
+                    <div class="tl-customer"><strong>{{ block.reservation.customerName }}</strong> &middot; {{ block.startHour }}:00 — {{ block.endHour }}:00</div>
+                    <div class="tl-actions">
+                      <button type="button" class="tl-btn" (click)="selectReservation(block.reservation)">Detalle</button>
+                    </div>
+                  </div>
+                </div>
+              } @empty {
+                <div class="tl-empty">No hay reservas para este dia.</div>
+              }
+            </div>
+          </section>
+        }
         @if (activeTab() === 'courts') {
           <section class="admin-section">
             <div class="section-actions">
@@ -798,6 +875,123 @@
                   <button type="submit" class="btn btn-primary">{{ editingCourt() ? 'Guardar' : 'Crear' }}</button>
                 </div>
               </form>
+            </div>
+          </div>
+        }
+
+        <!-- Mobile Bottom Navigation -->
+        <nav class="mobile-bottom-nav">
+          <button
+            type="button"
+            class="mobile-nav-item"
+            [class.active]="activeTab() === 'schedule'"
+            (click)="switchTab('schedule')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>
+            Agenda
+          </button>
+          <button
+            type="button"
+            class="mobile-nav-item"
+            [class.active]="activeTab() === 'courts'"
+            (click)="switchTab('courts')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M12 4v16M4 12h16"/></svg>
+            Pistas
+          </button>
+          <button type="button" class="mobile-fab" (click)="openMobileReservation()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+          <button
+            type="button"
+            class="mobile-nav-item"
+            [class.active]="activeTab() === 'reservations'"
+            (click)="switchTab('reservations')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16"/><path d="M9 15l2 2 4-5"/></svg>
+            Reservas
+          </button>
+          <button
+            type="button"
+            class="mobile-nav-item"
+            [class.active]="activeTab() === 'stats'"
+            (click)="switchTab('stats')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 19V9M12 19V5M19 19v-7"/><path d="M3 19h18"/></svg>
+            Stats
+          </button>
+        </nav>
+
+        <!-- Mobile Reservation Modal -->
+        @if (showMobileReservationModal()) {
+          <div class="mobile-modal-overlay" (click)="closeMobileReservation()">
+            <div class="mobile-modal-box" (click)="$event.stopPropagation()">
+              <div class="mobile-modal-header">
+                <h3>Nueva reserva</h3>
+                <button type="button" class="mobile-modal-close" (click)="closeMobileReservation()">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
+              </div>
+              <div class="mobile-modal-body">
+                <div class="mobile-modal-chip">
+                  <span>{{ formatLongDate(scheduleDateFilter()) }}</span>
+                </div>
+
+                <div class="mobile-form-group">
+                  <label>Pista</label>
+                  <select [(ngModel)]="mobileReservationCourt" (ngModelChange)="mobileReservationHour.set('')">
+                    <option value="">Seleccionar pista...</option>
+                    @for (court of calendarCourts(); track court.id) {
+                      <option [value]="court.id">{{ court.name }}</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="mobile-form-group">
+                  <label>Hora disponible</label>
+                  <select [(ngModel)]="mobileReservationHour" [disabled]="!mobileReservationCourt()">
+                    <option value="">Seleccionar hora...</option>
+                    @for (hour of mobileAvailableHours(); track hour) {
+                      <option [value]="hour">{{ formatHour(hour) }}</option>
+                    }
+                  </select>
+                </div>
+
+                <div class="mobile-form-group">
+                  <label>Nombre del cliente</label>
+                  <input
+                    type="text"
+                    [(ngModel)]="mobileReservationForm.customerName"
+                    placeholder="Nombre Apellido">
+                </div>
+
+                <div class="mobile-form-row">
+                  <div class="mobile-form-group">
+                    <label>Email</label>
+                    <input
+                      type="email"
+                      [(ngModel)]="mobileReservationForm.customerEmail"
+                      placeholder="email@ejemplo.com">
+                  </div>
+                  <div class="mobile-form-group">
+                    <label>Telefono</label>
+                    <input
+                      type="tel"
+                      [(ngModel)]="mobileReservationForm.customerPhone"
+                      placeholder="+34 600 000 000">
+                  </div>
+                </div>
+
+                @if (adminBookingError()) {
+                  <p class="mobile-form-error">{{ adminBookingError() }}</p>
+                }
+
+                <div class="mobile-modal-actions">
+                  <button
+                    type="button"
+                    class="mobile-btn-submit"
+                    [disabled]="adminBookingLoading() || !mobileReservationCourt() || !mobileReservationHour()"
+                    (click)="createMobileReservation()">
+                    {{ adminBookingLoading() ? 'Guardando...' : 'Crear reserva' }}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         }
