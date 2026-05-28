@@ -22,10 +22,6 @@ export class ReservationService {
     return this.http.post<Reservation>(`${this.apiUrl}/reservations`, data);
   }
 
-  getByEmail(email: string): Observable<Reservation[]> {
-    return this.http.get<Reservation[]>(`${this.apiUrl}/reservations/my?email=${encodeURIComponent(email)}`);
-  }
-
   getById(id: string): Observable<Reservation> {
     return this.http.get<Reservation>(`${this.apiUrl}/reservations/${id}`);
   }
