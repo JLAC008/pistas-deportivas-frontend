@@ -1,0 +1,17 @@
+<section class="payment-result-page">
+  @if (success()) {
+    <div class="payment-success">
+      <div class="result-icon success-icon">&#10003;</div>
+      <h1>Pago realizado con exito</h1>
+      <p>Tu reserva ha sido confirmada y el pago procesado correctamente.</p>
+      <a routerLink="/" class="btn btn-primary">Volver a pistas</a>
+    </div>
+  } @else {
+    <div class="payment-failure">
+      <div class="result-icon failure-icon">&#10007;</div>
+      <h1>Pago no completado</h1>
+      <p>El pago no pudo procesarse. Puedes intentarlo de nuevo.</p>
+      <a routerLink="/" class="btn btn-primary">Volver a pistas</a>
+    </div>
+  }
+</section>

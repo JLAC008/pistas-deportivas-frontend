@@ -37,6 +37,12 @@
             "tsConfig": "tsconfig.app.json"
           }
         },
+        "lint": {
+          "builder": "@angular-eslint/builder:lint",
+          "options": {
+            "lintFilePatterns": ["src/**/*.ts", "src/**/*.html"]
+          }
+        },
         "serve": {
           "builder": "@angular/build:dev-server",
           "configurations": {

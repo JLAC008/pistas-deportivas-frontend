@@ -8,65 +8,8 @@ import { AuthService } from '../../services/auth.service';
   selector: 'app-login',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  template: `
-    <section class="auth-page">
-      <div class="auth-card">
-        <div class="auth-header">
-          <h1>Iniciar Sesion</h1>
-          <p>Accede al panel de administracion</p>
-        </div>
-
-        <form class="auth-form" (ngSubmit)="onSubmit()">
-          <div class="form-group">
-            <label for="username">Usuario</label>
-            <input
-              type="text"
-              id="username"
-              class="input"
-              [(ngModel)]="username"
-              name="username"
-              placeholder="admin"
-              required>
-          </div>
-
-          <div class="form-group">
-            <label for="password">Contrasena</label>
-            <input
-              type="password"
-              id="password"
-              class="input"
-              [(ngModel)]="password"
-              name="password"
-              placeholder="Tu contrasena"
-              required>
-          </div>
-
-          @if (error()) {
-            <div class="error-message">
-              {{ error() }}
-            </div>
-          }
-
-          <button type="submit" class="btn btn-primary btn-lg btn-block" [disabled]="isLoading()">
-            @if (isLoading()) {
-              Iniciando sesion...
-            } @else {
-              Iniciar Sesion
-            }
-          </button>
-        </form>
-
-        <div class="auth-footer">
-          <div class="demo-credentials">
-            <p class="demo-title">Credenciales de prueba:</p>
-            <div class="demo-user">
-              <p><strong>Admin:</strong> admin / admin123</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  `
+  templateUrl: './login.component.html',
+  styleUrls: ['./login.component.css']
 })
 export class LoginComponent {
   private router = inject(Router);
