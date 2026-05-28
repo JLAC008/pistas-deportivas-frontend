@@ -625,7 +625,7 @@
                             <rect x="4" y="5" width="16" height="15" rx="2" />
                             <path d="M8 3v4M16 3v4M4 10h16" />
                           </svg>
-                          {{ res.date | date:'shortDate' }}
+                          {{ res.date | date:'dd/MM/yyyy' }}
                         </span>
                       </td>
                       <td>
@@ -710,7 +710,7 @@
                     <div>
                       <h3>{{ res.court.name }}</h3>
                       <p class="admin-mobile-subtitle">
-                        {{ res.date | date:'shortDate' }} &middot; {{ res.startTime }}:00-{{ res.endTime }}:00
+                        {{ res.date | date:'dd/MM/yyyy' }} &middot; {{ res.startTime }}:00-{{ res.endTime }}:00
                       </p>
                     </div>
                     <span class="status-badge" [class]="res.status">
