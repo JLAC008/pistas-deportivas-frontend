@@ -1127,9 +1127,20 @@
 }
 
 .calendar-day.today {
-  background: var(--forest);
-  color: var(--white);
   font-weight: 700;
+  position: relative;
+}
+
+.calendar-day.today::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background: var(--forest);
+  border-radius: 50%;
 }
 
 .calendar-day.selected {
@@ -1257,6 +1268,13 @@
   background: var(--sage-light);
   color: var(--forest);
   border-color: var(--sage);
+}
+
+.btn-nav:disabled,
+.btn-nav.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .schedule-date-title {

@@ -452,12 +452,19 @@ class AdminComponent implements OnInit, AfterViewInit {
   isDayDisabled(day: CalendarDay): boolean {
     if (!day.isCurrentMonth) return true;
     const dayDate = day.date;
+    dayDate.setHours(0, 0, 0, 0);
+    
+    // Fecha mínima: primera reserva
+    const firstRes = this.firstReservationDate();
+    const minDate = firstRes ? new Date(firstRes) : new Date();
+    minDate.setHours(0, 0, 0, 0);
+    
+    // Fecha máxima: hoy + 3 meses
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const min = this.getMinMonth();
-    const max = this.getMaxMonth();
-    const minDate = new Date(min.year, min.month, 1);
-    const maxDate = new Date(max.year, max.month + 1, 0);
+    const maxDate = new Date(today);
+    maxDate.setMonth(maxDate.getMonth() + 3);
+    
     return dayDate < minDate || dayDate > maxDate;
   }
 
@@ -489,6 +496,7 @@ class AdminComponent implements OnInit, AfterViewInit {
   }
 
   prevDay(): void {
+    if (!this.canGoPrevDay()) return;
     const current = new Date(this.scheduleDateFilter());
     current.setDate(current.getDate() - 1);
     this.scheduleDateFilter.set(this.toDateInputValue(current));
@@ -496,6 +504,7 @@ class AdminComponent implements OnInit, AfterViewInit {
   }
 
   nextDay(): void {
+    if (!this.canGoNextDay()) return;
     const current = new Date(this.scheduleDateFilter());
     current.setDate(current.getDate() + 1);
     this.scheduleDateFilter.set(this.toDateInputValue(current));
@@ -524,12 +533,14 @@ class AdminComponent implements OnInit, AfterViewInit {
       return new Date(Math.min(...timestamps));
     }
     const d = new Date();
+    d.setHours(0, 0, 0, 0);
     d.setDate(d.getDate() - 7);
     return d;
   }
 
   private getMaxMobileDate(): Date {
     const d = new Date();
+    d.setHours(0, 0, 0, 0);
     d.setMonth(d.getMonth() + 3);
     return d;
   }
