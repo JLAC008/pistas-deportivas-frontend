@@ -74,7 +74,7 @@ class AdminComponent implements OnInit, AfterViewInit {
   mobileReservationForm = { customerName: '', customerEmail: '', customerPhone: '' };
 
   reservationHours = Array.from({ length: 30 }, (_, i) => 8 + i * 0.5); // 8.0 to 22.5
-  calendarHours = Array.from({ length: 30 }, (_, i) => 8 + i * 0.5); // 8.0 to 22.5
+  calendarHours = Array.from({ length: 15 }, (_, i) => 8 + i); // 8.0 to 22.0 (1-hour rows)
 
   currentMonth = signal(new Date().getMonth());
   currentYear = signal(new Date().getFullYear());
@@ -234,7 +234,7 @@ class AdminComponent implements OnInit, AfterViewInit {
     const totalSlots = this.calendarCourts().length * this.calendarHours.length;
     if (!totalSlots) return 0;
     const bookedSlots = this.scheduledReservations().reduce(
-      (sum, reservation) => sum + Math.round((reservation.endTime - reservation.startTime) * 2),
+      (sum, reservation) => sum + (reservation.endTime - reservation.startTime),
       0
     );
     return Math.min(100, Math.round((bookedSlots / totalSlots) * 100));
@@ -617,7 +617,18 @@ class AdminComponent implements OnInit, AfterViewInit {
   }
 
   getBlockHeight(block: MergedBlock): number {
-    return block.duration * 52;
+    return block.duration * 44;
+  }
+
+  getBlockTop(block: MergedBlock): number {
+    const halfHourOffset = (block.startHour % 1) * 44;
+    return halfHourOffset;
+  }
+
+  getHourBlocksForCell(courtId: string, hour: number): MergedBlock[] {
+    return this.mergedBlocks().filter(b =>
+      b.courtId === courtId && b.startHour >= hour && b.startHour < hour + 1
+    );
   }
 
   getCalendarReservation(courtId: string, hour: number): Reservation | null {

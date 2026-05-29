@@ -149,52 +149,42 @@
                     }
 
                     @for (hour of calendarHours; track hour; let hourIdx = $index) {
-                      <div class="schedule-cell-new schedule-time-new" [style.grid-column]="'1'" [style.grid-row]="hourIdx + 2">{{ formatHour(hour) }}</div>
+                      <div class="schedule-cell-new schedule-time-new" [style.grid-column]="'1'" [style.grid-row]="hourIdx + 2">
+                        <span class="time-hour">{{ formatHour(hour) }}</span>
+                        <span class="time-half">:30</span>
+                      </div>
                       @for (court of calendarCourts(); track court.id; let courtIdx = $index) {
-                        @if (getMergedBlockForCell(court.id, hour); as block) {
-                          <div class="schedule-cell-new schedule-body-cell" [style.grid-column]="courtIdx + 2" [style.grid-row]="(hourIdx + 2) + ' / span ' + (block.duration * 2)">
-                            <button
-                              type="button"
-                              class="schedule-booking-new"
-                              [class.paid]="block.reservation.paymentStatus === 'PAID'"
-                              [class.pending]="block.reservation.paymentStatus === 'PENDING'"
-                              [class.confirmed]="block.reservation.status === 'CONFIRMED'"
-                              (click)="selectReservation(block.reservation)">
-                              <span class="booking-time">{{ formatHour(block.startHour) }} - {{ formatHour(block.endHour) }}</span>
-                              <span class="booking-name">{{ block.reservation.customerName }}</span>
-                              <span class="booking-status">{{ getPaymentStatusLabel(block.reservation.paymentStatus) }}</span>
-                            </button>
-                          </div>
-                        } @else if (getSelectionBlockForCell(court.id, hour); as selBlock) {
-                          <div class="schedule-cell-new schedule-body-cell" [style.grid-column]="courtIdx + 2" [style.grid-row]="(hourIdx + 2) + ' / span ' + (selBlock.duration * 2)">
-                            <button
-                              type="button"
-                              class="schedule-selection-new"
-                              (click)="toggleSlot(court.id, court.name, hour)">
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                <path d="M20 6 9 17l-5-5"/>
-                              </svg>
-                              <span class="selection-time">{{ formatHour(selBlock.startHour) }} - {{ formatHour(selBlock.endHour) }}</span>
-                              <span class="selection-hint">{{ selBlock.duration * 60 }} min</span>
-                            </button>
-                          </div>
-                          } @else if (!isPartOfMergedBlock(court.id, hour) && !isPartOfSelection(court.id, hour) && !isPastSlot(hour)) {
-                          <div class="schedule-cell-new schedule-body-cell" [style.grid-column]="courtIdx + 2" [style.grid-row]="hourIdx + 2">
-                            <button
-                              type="button"
-                              class="schedule-empty-new"
-                              [class.selected]="isSlotSelected(court.id, hour)"
-                              (click)="toggleSlot(court.id, court.name, hour)">
-                              @if (isSlotSelected(court.id, hour)) {
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                  <path d="M20 6 9 17l-5-5"/>
-                                </svg>
-                              } @else {
+                        <div class="schedule-cell-new schedule-body-cell stacked-cell" [style.grid-column]="courtIdx + 2" [style.grid-row]="hourIdx + 2">
+                          <div class="cell-bottom-half"></div>
+                          @if (getHourBlocksForCell(court.id, hour); as blocks) {
+                            @if (blocks.length > 0) {
+                              <div class="block-stack">
+                                @for (block of blocks; track block.startHour) {
+                                  <button
+                                    type="button"
+                                    class="schedule-booking-new stacked-booking"
+                                    [class.half-block]="block.duration < 1"
+                                    [class.full-block]="block.duration >= 1"
+                                    [class.paid]="block.reservation.paymentStatus === 'PAID'"
+                                    [class.pending]="block.reservation.paymentStatus === 'PENDING'"
+                                    [class.confirmed]="block.reservation.status === 'CONFIRMED'"
+                                    (click)="selectReservation(block.reservation)">
+                                    <span class="booking-time">{{ formatHour(block.startHour) }} — {{ formatHour(block.endHour) }}</span>
+                                    <span class="booking-name">{{ block.reservation.customerName }}</span>
+                                    <span class="booking-status">{{ getPaymentStatusLabel(block.reservation.paymentStatus) }}</span>
+                                  </button>
+                                }
+                              </div>
+                            } @else {
+                              <button
+                                type="button"
+                                class="schedule-empty-new"
+                                (click)="openAdminBooking(court.id, court.name, hour)">
                                 Libre
-                              }
-                            </button>
-                          </div>
+                              </button>
+                            }
                           }
+                        </div>
                       }
                     }
                   </div>
