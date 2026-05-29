@@ -9,6 +9,8 @@ services:
     ports:
       - "8081:8081"
     restart: unless-stopped
+    networks:
+      - dokploy-network
 
 networks:
   dokploy-network:
