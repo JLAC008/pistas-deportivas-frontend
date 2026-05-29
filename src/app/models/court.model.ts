@@ -8,14 +8,15 @@ export interface Court {
   name: string;
   type: CourtType;
   description: string | null;
-  pricePerHour: number;
+  durationMinutes: number;
+  price: number;
   imageUrl: string | null;
   isActive: boolean;
   amenities: string[];
 }
 
 export interface TimeSlot {
-  hour: number;
+  time: number;
   available: boolean;
 }
 

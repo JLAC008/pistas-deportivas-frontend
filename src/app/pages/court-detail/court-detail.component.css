@@ -485,6 +485,41 @@
   font-weight: 800;
 }
 
+.selected-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--forest);
+  background: var(--sage-light);
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+}
+
+.selection-blocks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+  justify-content: center;
+}
+
+.selection-block {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  background: var(--forest);
+  color: var(--white);
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.block-label {
+  font-weight: 500;
+  opacity: 0.75;
+  font-size: 0.65rem;
+}
+
 .booking-step:not(:first-child) {
   margin-top: 1rem;
 }

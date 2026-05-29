@@ -30,8 +30,8 @@
                 <circle cx="12" cy="12" r="8" />
                 <path d="M12 8v8M9.5 10.2c.7-.8 4.8-1.1 4.8 1.2 0 2.4-4.6.9-4.6 3.1 0 1.8 3.5 1.7 4.8.8" />
               </svg>
-              <strong>{{ c.pricePerHour }}&#8364;/hora</strong>
-              <small>Precio</small>
+              <strong>{{ c.price }}&#8364;</strong>
+              <small>{{ c.durationMinutes < 60 ? c.durationMinutes + 'min' : c.durationMinutes === 60 ? '1h' : c.durationMinutes === 90 ? '1h 30min' : '2h' }}</small>
             </span>
             <span>
               <svg class="booking-icon booking-icon-soft" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -92,30 +92,54 @@
                     </svg>
                     Horas disponibles
                   </span>
+                  @if (selectedSlots().length > 0) {
+                    <span class="selected-count">{{ selectedSlots().length }} seleccionado{{ selectedSlots().length !== 1 ? 's' : '' }}</span>
+                  }
                 </div>
 
                 <div class="time-slots">
-                  @for (slot of availableSlots(); track slot.hour) {
+                  @for (slot of availableStartSlots(); track slot.time) {
                     <button
                       class="time-slot"
-                      [class.selected]="isSlotSelected(slot.hour)"
-                      [class.available]="slot.available && !isPastSlot(slot.hour)"
-                      [class.past]="isPastSlot(slot.hour)"
-                      [class.reserved]="!slot.available && !isPastSlot(slot.hour)"
-                      [disabled]="!slot.available || isPastSlot(slot.hour)"
-                      (click)="toggleSlot(slot.hour)">
-                      {{ formatTime(slot.hour) }} - {{ formatTime(slot.hour + 1) }}
+                      [class.selected]="isSlotSelected(slot.time)"
+                      [class.available]="slot.available && !isPastSlot(slot.time)"
+                      [class.past]="isPastSlot(slot.time)"
+                      [class.reserved]="false"
+                      [disabled]="isPastSlot(slot.time)"
+                      (click)="selectSlot(slot.time)">
+                      {{ formatTime(slot.time) }} - {{ formatTime(slot.time + durationHours()) }}
                     </button>
                   }
                 </div>
+
+                @if (selectedSlots().length > 0) {
+                  <div class="selection-blocks">
+                    @for (block of selectedBlocks(); track block.startTime; let i = $index) {
+                      <span class="selection-block">
+                        {{ formatTime(block.startTime) }} - {{ formatTime(block.endTime) }}
+                        @if (selectedBlocks().length > 1) {
+                          <span class="block-label">Bloque {{ i + 1 }}</span>
+                        }
+                      </span>
+                    }
+                  </div>
+                }
               </div>
 
               <aside class="booking-side-panel">
                 <div class="booking-summary booking-summary-final">
-                  <div class="summary-row">
-                    <span>Horas:</span>
-                    <span>{{ selectedSlots().length }}</span>
-                  </div>
+                  @if (selectedSlots().length > 0) {
+                    @for (block of selectedBlocks(); track block.startTime; let i = $index) {
+                      <div class="summary-row">
+                        <span>{{ selectedBlocks().length > 1 ? 'Bloque ' + (i + 1) + ':' : 'Horario:' }}</span>
+                        <span>{{ formatTime(block.startTime) }} - {{ formatTime(block.endTime) }}</span>
+                      </div>
+                    }
+                    <div class="summary-row">
+                      <span>Duracion total:</span>
+                      <span>{{ selectedSlots().length * (c.durationMinutes) }} min</span>
+                    </div>
+                  }
                   <div class="summary-row total">
                     <span>Total:</span>
                     <span>{{ totalPrice() }}&#8364;</span>
@@ -205,7 +229,7 @@
                   @if (isBooking()) {
                     Reservando...
                   } @else {
-                    Confirmar Reserva
+                    Confirmar Reserva{{ selectedSlots().length > 1 ? 's' : '' }}
                   }
                 </button>
               </div>
@@ -228,7 +252,7 @@
                   @if (isBooking()) {
                     Reservando...
                   } @else {
-                    Confirmar Reserva
+                    Confirmar Reserva{{ selectedSlots().length > 1 ? 's' : '' }}
                   }
                 </button>
               </div>
@@ -257,13 +281,15 @@
       <div class="success-overlay" (click)="showSuccess.set(false)">
         <div class="success-modal" (click)="$event.stopPropagation()">
           <div class="success-icon">&#10003;</div>
-          <h2>Reserva Confirmada</h2>
-          <p>Tu reserva ha sido creada exitosamente</p>
+          <h2>Reserva{{ createdReservations().length > 1 ? 's' : '' }} Confirmada{{ createdReservations().length > 1 ? 's' : '' }}</h2>
+          <p>{{ createdReservations().length === 1 ? 'Tu reserva ha sido creada exitosamente' : 'Tus reservas han sido creadas exitosamente' }}</p>
           <div class="success-details">
             <p><strong>Pista:</strong> {{ c.name }}</p>
             <p><strong>Fecha:</strong> {{ selectedDate() }}</p>
-            <p><strong>Hora:</strong> {{ selectedTimeRange() }}</p>
-            <p><strong>Email:</strong> {{ customerEmail() }}</p>
+            @for (block of selectedBlocks(); track block.startTime; let i = $index) {
+              <p><strong>Bloque {{ i + 1 }}:</strong> {{ formatTime(block.startTime) }} - {{ formatTime(block.endTime) }}</p>
+            }
+            <p><strong>Email:</strong> {{ customerEmail() || 'Presencial' }}</p>
             <p><strong>Pago:</strong> {{ paymentMethodLabel() }}</p>
           </div>
           @if (paymentMethod() === 'ONLINE') {

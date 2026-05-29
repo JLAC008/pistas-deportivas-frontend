@@ -71,7 +71,7 @@
               </div>
               <div class="court-footer">
                 <div class="court-meta">
-                  <span class="court-price">{{ court.pricePerHour }}&euro;/hora</span>
+                  <span class="court-price">{{ court.price }}&euro; / {{ court.durationMinutes < 60 ? court.durationMinutes + 'min' : court.durationMinutes === 60 ? '1h' : court.durationMinutes === 90 ? '1h 30min' : '2h' }}</span>
                 </div>
                 @if (court.isActive) {
                   <span class="btn btn-primary btn-sm">Reservar</span>

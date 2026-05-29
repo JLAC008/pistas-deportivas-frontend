@@ -1,11 +1,18 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { CourtService } from '../../services/court.service';
 import { ReservationService } from '../../services/reservation.service';
 import { PaymentService } from '../../services/payment.service';
 import { Court, TimeSlot } from '../../models/court.model';
 import { DatePickerComponent } from '../../components/date-picker/date-picker.component';
+
+interface SelectedBlock {
+  startTime: number;
+  endTime: number;
+  count: number;
+}
 
 @Component({
   selector: 'app-court-detail',
@@ -30,7 +37,7 @@ export class CourtDetailComponent implements OnInit {
   customerEmail = signal('');
   paymentMethod = signal<'ONLINE' | 'ONSITE'>('ONLINE');
   availableSlots = signal<TimeSlot[]>([]);
-  createdReservationId = signal<string | null>(null);
+  createdReservations = signal<{id: string; startTime: number; endTime: number}[]>([]);
   loadingCourt = signal(true);
 
   minDate = this.getTodayString();
@@ -40,19 +47,73 @@ export class CourtDetailComponent implements OnInit {
     return today.toISOString().split('T')[0];
   }
 
-  isPastSlot(hour: number): boolean {
-    const today = this.getTodayString();
-    if (this.selectedDate() !== today) {
-      return false;
+  durationHours = computed(() => {
+    const court = this.court();
+    if (!court) return 0;
+    return court.durationMinutes / 60;
+  });
+
+  selectedBlocks = computed<SelectedBlock[]>(() => {
+    const slots = this.selectedSlots();
+    const court = this.court();
+    if (!court || slots.length === 0) return [];
+
+    const duration = court.durationMinutes / 60;
+    const blocks: SelectedBlock[] = [];
+    let blockStart = slots[0];
+    let blockEnd = blockStart + duration;
+    let count = 1;
+
+    for (let i = 1; i < slots.length; i++) {
+      if (slots[i] === blockEnd) {
+        blockEnd = slots[i] + duration;
+        count++;
+      } else {
+        blocks.push({ startTime: blockStart, endTime: blockEnd, count });
+        blockStart = slots[i];
+        blockEnd = blockStart + duration;
+        count = 1;
+      }
     }
-    const currentHour = new Date().getHours();
-    return hour <= currentHour;
+    blocks.push({ startTime: blockStart, endTime: blockEnd, count });
+
+    return blocks;
+  });
+
+  isPastSlot(time: number): boolean {
+    const today = this.getTodayString();
+    if (this.selectedDate() !== today) return false;
+    const now = new Date();
+    const currentHour = now.getHours() + now.getMinutes() / 60;
+    return time <= currentHour;
   }
+
+  availableStartSlots = computed(() => {
+    const slots = this.availableSlots();
+    const court = this.court();
+    if (!court || slots.length === 0) return [];
+
+    const duration = court.durationMinutes / 60;
+
+    return slots.filter(slot => {
+      const start = slot.time;
+      const end = start + duration;
+
+      if (end > 23.0) return false;
+
+      for (let t = start; t < end; t += 0.5) {
+        const slotAtTime = slots.find(s => s.time === t);
+        if (!slotAtTime || !slotAtTime.available) return false;
+      }
+
+      return true;
+    });
+  });
 
   totalPrice = computed(() => {
     const court = this.court();
     if (!court) return 0;
-    return court.pricePerHour * this.selectedSlots().length;
+    return court.price * this.selectedSlots().length;
   });
 
   canBook = computed(() => {
@@ -109,37 +170,33 @@ export class CourtDetailComponent implements OnInit {
     });
   }
 
-  isSlotSelected(hour: number): boolean {
-    return this.selectedSlots().includes(hour);
+  isSlotSelected(time: number): boolean {
+    return this.selectedSlots().includes(time);
   }
 
-  toggleSlot(hour: number): void {
-    const slots = this.selectedSlots();
-    const index = slots.indexOf(hour);
-
-    if (index > -1) {
-      this.selectedSlots.set(slots.filter(s => s !== hour));
-    } else {
-      const newSlots = [...slots, hour].sort((a, b) => a - b);
-      let consecutive = true;
-      for (let i = 1; i < newSlots.length; i++) {
-        if (newSlots[i] - newSlots[i - 1] !== 1) {
-          consecutive = false;
-          break;
-        }
+  selectSlot(time: number): void {
+    this.selectedSlots.update(slots => {
+      if (slots.includes(time)) {
+        return slots.filter(t => t !== time);
       }
-      this.selectedSlots.set(consecutive ? newSlots : [hour]);
-    }
+      return [...slots, time].sort((a, b) => a - b);
+    });
   }
 
-  formatTime(hour: number): string {
-    return `${hour.toString().padStart(2, '0')}:00`;
+  formatTime(time: number): string {
+    const h = Math.floor(time);
+    const m = Math.round((time - h) * 60);
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
   }
 
   selectedTimeRange(): string {
-    const slots = this.selectedSlots();
-    if (!slots.length) return 'Selecciona hora';
-    return `${this.formatTime(slots[0])} - ${this.formatTime(slots[slots.length - 1] + 1)}`;
+    const blocks = this.selectedBlocks();
+    if (blocks.length === 0) return 'Selecciona hora';
+    if (blocks.length === 1) {
+      const b = blocks[0];
+      return `${this.formatTime(b.startTime)} - ${this.formatTime(b.endTime)}`;
+    }
+    return `${blocks.length} bloques seleccionados`;
   }
 
   selectedDateLabel(): string {
@@ -175,24 +232,30 @@ export class CourtDetailComponent implements OnInit {
 
   makeReservation(): void {
     const court = this.court();
-    if (!court) return;
+    const blocks = this.selectedBlocks();
+    if (!court || blocks.length === 0) return;
 
     this.isBooking.set(true);
-
     const isOnsite = this.paymentMethod() === 'ONSITE';
 
-    this.reservationService.create({
-      courtId: court.id,
-      customerName: isOnsite ? 'Presencial' : this.customerName().trim(),
-      customerEmail: isOnsite ? 'presencial@valleperdidosport.com' : this.customerEmail().trim(),
-      customerPhone: isOnsite ? '' : this.customerPhone().trim(),
-      date: this.selectedDate(),
-      startTime: this.selectedSlots()[0],
-      endTime: this.selectedSlots()[this.selectedSlots().length - 1] + 1,
-      paymentMethod: this.paymentMethod()
-    }).subscribe({
-      next: (reservation) => {
-        this.createdReservationId.set(reservation.id);
+    const observables = blocks.map(block =>
+      this.reservationService.create({
+        courtId: court.id,
+        customerName: isOnsite ? 'Presencial' : this.customerName().trim(),
+        customerEmail: isOnsite ? 'presencial@valleperdidosport.com' : this.customerEmail().trim(),
+        customerPhone: isOnsite ? '' : this.customerPhone().trim(),
+        date: this.selectedDate(),
+        startTime: block.startTime,
+        endTime: block.endTime,
+        paymentMethod: this.paymentMethod()
+      })
+    );
+
+    forkJoin(observables).subscribe({
+      next: (reservations) => {
+        this.createdReservations.set(
+          reservations.map(r => ({ id: r.id, startTime: r.startTime, endTime: r.endTime }))
+        );
         this.isBooking.set(false);
         this.showSuccess.set(true);
       },
@@ -203,9 +266,9 @@ export class CourtDetailComponent implements OnInit {
   }
 
   redirectToPayment(): void {
-    const id = this.createdReservationId();
-    if (!id) return;
-    this.paymentService.initiate(id).subscribe({
+    const reservations = this.createdReservations();
+    if (reservations.length === 0) return;
+    this.paymentService.initiate(reservations[0].id).subscribe({
       next: (payment) => {
         const form = document.createElement('form');
         form.method = 'POST';

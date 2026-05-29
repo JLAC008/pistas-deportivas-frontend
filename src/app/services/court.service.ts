@@ -38,7 +38,8 @@ export class CourtService {
     name: string;
     type: string;
     description: string;
-    pricePerHour: number;
+    durationMinutes: number;
+    price: number;
     imageUrl?: string;
     amenities: string[];
   }): Observable<Court> {
@@ -49,7 +50,8 @@ export class CourtService {
     name: string;
     type: string;
     description: string;
-    pricePerHour: number;
+    durationMinutes: number;
+    price: number;
     imageUrl?: string;
     amenities: string[];
   }): Observable<Court> {

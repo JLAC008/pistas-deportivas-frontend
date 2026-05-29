@@ -144,7 +144,7 @@
                     @for (court of calendarCourts(); track court.id) {
                       <div class="schedule-cell-new schedule-head-new">
                         <strong>{{ court.name }}</strong>
-                        <span>{{ court.type }} &middot; {{ court.pricePerHour }}&#8364;/h</span>
+                        <span>{{ court.type }} &middot; {{ court.price }}&#8364; / {{ court.durationMinutes < 60 ? court.durationMinutes + 'min' : court.durationMinutes === 60 ? '1h' : court.durationMinutes === 90 ? '1h 30min' : '2h' }}</span>
                       </div>
                     }
 
@@ -152,7 +152,7 @@
                       <div class="schedule-cell-new schedule-time-new" [style.grid-column]="'1'" [style.grid-row]="hourIdx + 2">{{ formatHour(hour) }}</div>
                       @for (court of calendarCourts(); track court.id; let courtIdx = $index) {
                         @if (getMergedBlockForCell(court.id, hour); as block) {
-                          <div class="schedule-cell-new schedule-body-cell" [style.grid-column]="courtIdx + 2" [style.grid-row]="(hourIdx + 2) + ' / span ' + block.duration">
+                          <div class="schedule-cell-new schedule-body-cell" [style.grid-column]="courtIdx + 2" [style.grid-row]="(hourIdx + 2) + ' / span ' + (block.duration * 2)">
                             <button
                               type="button"
                               class="schedule-booking-new"
@@ -160,13 +160,13 @@
                               [class.pending]="block.reservation.paymentStatus === 'PENDING'"
                               [class.confirmed]="block.reservation.status === 'CONFIRMED'"
                               (click)="selectReservation(block.reservation)">
-                              <span class="booking-time">{{ block.startHour }}:00 - {{ block.endHour }}:00</span>
+                              <span class="booking-time">{{ formatHour(block.startHour) }} - {{ formatHour(block.endHour) }}</span>
                               <span class="booking-name">{{ block.reservation.customerName }}</span>
                               <span class="booking-status">{{ getPaymentStatusLabel(block.reservation.paymentStatus) }}</span>
                             </button>
                           </div>
                         } @else if (getSelectionBlockForCell(court.id, hour); as selBlock) {
-                          <div class="schedule-cell-new schedule-body-cell" [style.grid-column]="courtIdx + 2" [style.grid-row]="(hourIdx + 2) + ' / span ' + selBlock.duration">
+                          <div class="schedule-cell-new schedule-body-cell" [style.grid-column]="courtIdx + 2" [style.grid-row]="(hourIdx + 2) + ' / span ' + (selBlock.duration * 2)">
                             <button
                               type="button"
                               class="schedule-selection-new"
@@ -174,8 +174,8 @@
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
                                 <path d="M20 6 9 17l-5-5"/>
                               </svg>
-                              <span class="selection-time">{{ selBlock.startHour }}:00 - {{ selBlock.endHour }}:00</span>
-                              <span class="selection-hint">{{ selBlock.duration }} {{ selBlock.duration === 1 ? 'hora' : 'horas' }}</span>
+                              <span class="selection-time">{{ formatHour(selBlock.startHour) }} - {{ formatHour(selBlock.endHour) }}</span>
+                              <span class="selection-hint">{{ selBlock.duration * 60 }} min</span>
                             </button>
                           </div>
                           } @else if (!isPartOfMergedBlock(court.id, hour) && !isPartOfSelection(court.id, hour) && !isPastSlot(hour)) {
@@ -217,7 +217,7 @@
                     <div class="mini-form-slot-info-new">
                       @if (selectedTimeRange(); as range) {
                         <span class="slot-time">{{ formatHour(range.start) }} — {{ formatHour(range.end) }}</span>
-                        <span class="slot-range-hint">{{ range.count }} {{ range.count === 1 ? 'hora' : 'horas' }}</span>
+                        <span class="slot-range-hint">{{ (range.end - range.start) * 60 }} min</span>
                       } @else {
                         <span class="slot-time">{{ formatHour(slot.hour) }}</span>
                       }
@@ -291,7 +291,7 @@
                         </svg>
                       </div>
                       <div class="datetime-info">
-                        <span class="datetime-time">{{ reservation.startTime }}:00 - {{ reservation.endTime }}:00</span>
+                        <span class="datetime-time">{{ formatHour(reservation.startTime) }} - {{ formatHour(reservation.endTime) }}</span>
                         <span class="datetime-date">{{ formatLongDate(reservation.date) }}</span>
                       </div>
                     </div>
@@ -445,7 +445,7 @@
                         {{ getPaymentStatusLabel(block.reservation.paymentStatus) }}
                       </span>
                     </div>
-                    <div class="tl-customer"><strong>{{ block.reservation.customerName }}</strong> &middot; {{ block.startHour }}:00 — {{ block.endHour }}:00</div>
+                    <div class="tl-customer"><strong>{{ block.reservation.customerName }}</strong> &middot; {{ formatHour(block.startHour) }} — {{ formatHour(block.endHour) }}</div>
                     <div class="tl-actions">
                       <button type="button" class="tl-btn" (click)="selectReservation(block.reservation)">Detalle</button>
                     </div>
@@ -473,7 +473,8 @@
                     <th>Imagen</th>
                     <th>Nombre</th>
                     <th>Tipo</th>
-                    <th>Precio/hora</th>
+                    <th>Duracion</th>
+                    <th>Precio</th>
                     <th>Estado</th>
                     <th>Acciones</th>
                   </tr>
@@ -488,7 +489,8 @@
                       <td>
                         <span class="type-badge">{{ court.type }}</span>
                       </td>
-                      <td>{{ court.pricePerHour }}&#8364;</td>
+                      <td>{{ court.durationMinutes < 60 ? court.durationMinutes + 'min' : court.durationMinutes === 60 ? '1h' : court.durationMinutes === 90 ? '1h 30min' : '2h' }}</td>
+                      <td>{{ court.price }}&#8364;</td>
                       <td>
                         <span class="status-badge" [class.active]="court.isActive" [class.inactive]="!court.isActive">
                           {{ court.isActive ? 'Activa' : 'Inactiva' }}
@@ -525,7 +527,7 @@
                       </div>
                       <div class="admin-mobile-meta">
                         <span class="type-badge">{{ court.type }}</span>
-                        <span>{{ court.pricePerHour }}&#8364;/hora</span>
+                        <span>{{ court.price }}&#8364; / {{ court.durationMinutes < 60 ? court.durationMinutes + 'min' : court.durationMinutes === 60 ? '1h' : court.durationMinutes === 90 ? '1h 30min' : '2h' }}</span>
                       </div>
                     </div>
                   </div>
@@ -571,12 +573,12 @@
                   [value]="reservationDateFilter()"
                   (input)="reservationDateFilter.set($any($event.target).value)"
                   aria-label="Filtrar por fecha">
-                <select class="select" [value]="reservationHourFilter()" (change)="reservationHourFilter.set($any($event.target).value)">
-                  <option value="all">Todas las horas</option>
-                  @for (hour of reservationHours; track hour) {
-                    <option [value]="hour">{{ hour }}:00</option>
-                  }
-                </select>
+                  <select class="select" [value]="reservationHourFilter()" (change)="reservationHourFilter.set($any($event.target).value)">
+                    <option value="all">Todas las horas</option>
+                    @for (hour of reservationHours; track hour) {
+                      <option [value]="hour">{{ formatHour(hour) }}</option>
+                    }
+                  </select>
                 <select class="select" [value]="reservationSort()" (change)="reservationSort.set($any($event.target).value)">
                   <option value="created-desc">Mas recientes primero</option>
                   <option value="date-asc">Fecha mas proxima</option>
@@ -634,7 +636,7 @@
                             <circle cx="12" cy="12" r="8" />
                             <path d="M12 8v5l3 2" />
                           </svg>
-                          {{ res.startTime }}:00-{{ res.endTime }}:00
+                          {{ formatHour(res.startTime) }}-{{ formatHour(res.endTime) }}
                         </span>
                       </td>
                       <td>{{ res.totalPrice }}&#8364;</td>
@@ -710,7 +712,7 @@
                     <div>
                       <h3>{{ res.court.name }}</h3>
                       <p class="admin-mobile-subtitle">
-                        {{ res.date | date:'dd/MM/yyyy' }} &middot; {{ res.startTime }}:00-{{ res.endTime }}:00
+                        {{ res.date | date:'dd/MM/yyyy' }} &middot; {{ formatHour(res.startTime) }}-{{ formatHour(res.endTime) }}
                       </p>
                     </div>
                     <span class="status-badge" [class]="res.status">
@@ -785,7 +787,7 @@
               </div>
               <div class="stat-card">
                 <h3>Hora mas popular</h3>
-                <span class="stat-value">{{ mostPopularHour() }}:00</span>
+                <span class="stat-value">{{ formatHour(mostPopularHour()) }}</span>
               </div>
             </div>
 
@@ -837,8 +839,17 @@
 
                 <div class="form-row">
                   <div class="form-group">
-                    <label>Precio por hora (&#8364;)</label>
-                    <input type="number" class="input" [(ngModel)]="courtForm.pricePerHour" name="price" required min="1">
+                    <label>Duracion</label>
+                    <select class="select" [(ngModel)]="courtForm.durationMinutes" name="durationMinutes" required>
+                      <option [value]="30">30 min</option>
+                      <option [value]="60">1 hora</option>
+                      <option [value]="90">1 hora 30 min</option>
+                      <option [value]="120">2 horas</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Precio (&#8364;)</label>
+                    <input type="number" class="input" [(ngModel)]="courtForm.price" name="price" required min="1">
                   </div>
                 </div>
 

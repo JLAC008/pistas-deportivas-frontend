@@ -60,9 +60,9 @@ class AdminComponent implements OnInit, AfterViewInit {
   adminBookingSlot = signal<AdminBookingSlot | null>(null);
   adminBookingLoading = signal(false);
   adminBookingError = signal('');
-  adminFormData = { customerName: '', customerEmail: '', customerPhone: '', endTime: 0 };
+  adminFormData = { customerName: '', customerEmail: '', customerPhone: '' };
 
-  // Multi-slot selection for booking multiple hours
+  // Single slot selection for booking (duration is determined by court)
   selectedSlots = signal<{courtId: string; courtName: string; hour: number; date: string}[]>([]);
   isRangeSelecting = signal(false);
 
@@ -73,8 +73,8 @@ class AdminComponent implements OnInit, AfterViewInit {
   mobileCourtFilter = signal<string>('all');
   mobileReservationForm = { customerName: '', customerEmail: '', customerPhone: '' };
 
-  reservationHours = Array.from({ length: 15 }, (_, index) => index + 8);
-  calendarHours = Array.from({ length: 15 }, (_, index) => index + 8);
+  reservationHours = Array.from({ length: 30 }, (_, i) => 8 + i * 0.5); // 8.0 to 22.5
+  calendarHours = Array.from({ length: 30 }, (_, i) => 8 + i * 0.5); // 8.0 to 22.5
 
   currentMonth = signal(new Date().getMonth());
   currentYear = signal(new Date().getFullYear());
@@ -83,7 +83,8 @@ class AdminComponent implements OnInit, AfterViewInit {
     name: '',
     type: 'TENIS' as string,
     description: '',
-    pricePerHour: 20,
+    durationMinutes: 60,
+    price: 25,
     imageUrl: 'https://images.pexels.com/photos/209977/pexels-photo-209977.jpeg?auto=compress&cs=tinysrgb&w=800',
     amenitiesInput: '',
     isActive: true
@@ -140,15 +141,16 @@ class AdminComponent implements OnInit, AfterViewInit {
   });
 
   mostPopularHour = computed(() => {
-    const hours = new Map<number, number>();
+    const hourCounts = new Map<number, number>();
     this.reservationService.reservations()
       .filter(r => r.status !== 'CANCELLED')
       .forEach(r => {
-        for (let h = r.startTime; h < r.endTime; h++) {
-          hours.set(h, (hours.get(h) || 0) + 1);
+        for (let t = r.startTime; t < r.endTime; t += 0.5) {
+          const rounded = Math.round(t * 10) / 10;
+          hourCounts.set(rounded, (hourCounts.get(rounded) || 0) + 1);
         }
       });
-    const sorted = [...hours.entries()].sort((a, b) => b[1] - a[1]);
+    const sorted = [...hourCounts.entries()].sort((a, b) => b[1] - a[1]);
     return sorted[0]?.[0] || 0;
   });
 
@@ -195,15 +197,20 @@ class AdminComponent implements OnInit, AfterViewInit {
     return blocks.filter(b => b.courtId === courtFilter);
   });
 
-  // Mobile: available hours for a given court (no overlapping reservations)
+  // Mobile: available half-hour start slots for a given court
   mobileAvailableHours = computed(() => {
     const courtId = this.mobileReservationCourt();
     if (!courtId) return [];
+    const court = this.calendarCourts().find(c => c.id === courtId);
+    if (!court) return [];
     const date = this.scheduleDateFilter();
+    const duration = court.durationMinutes / 60;
     const existing = this.scheduledReservations().filter(r => r.court.id === courtId && r.date === date);
-    return this.calendarHours.filter(hour =>
-      !existing.some(r => hour >= r.startTime && hour < r.endTime)
-    );
+    return this.calendarHours.filter(hour => {
+      const end = hour + duration;
+      if (end > 23.0) return false;
+      return !existing.some(r => hour < r.endTime && end > r.startTime);
+    });
   });
 
   scheduledReservations = computed(() => {
@@ -227,7 +234,7 @@ class AdminComponent implements OnInit, AfterViewInit {
     const totalSlots = this.calendarCourts().length * this.calendarHours.length;
     if (!totalSlots) return 0;
     const bookedSlots = this.scheduledReservations().reduce(
-      (sum, reservation) => sum + Math.max(1, reservation.endTime - reservation.startTime),
+      (sum, reservation) => sum + Math.round((reservation.endTime - reservation.startTime) * 2),
       0
     );
     return Math.min(100, Math.round((bookedSlots / totalSlots) * 100));
@@ -240,27 +247,29 @@ class AdminComponent implements OnInit, AfterViewInit {
   selectedTimeRange = computed(() => {
     const slots = this.selectedSlots();
     if (slots.length === 0) return null;
-    const hours = slots.map(s => s.hour).sort((a, b) => a - b);
+    const court = this.calendarCourts().find(c => c.id === slots[0].courtId);
+    const duration = court ? court.durationMinutes / 60 : 1;
     return {
-      start: hours[0],
-      end: hours[hours.length - 1] + 1,
-      count: slots.length,
+      start: slots[0].hour,
+      end: slots[0].hour + duration,
+      count: 1,
       courtName: slots[0].courtName,
       courtId: slots[0].courtId
     };
   });
 
-  // P1: Selection blocks (like merged blocks but for multi-slot selection)
+  // P1: Selection block for single slot
   selectionBlocks = computed(() => {
     const slots = this.selectedSlots();
     if (slots.length === 0) return [];
-    const hours = slots.map(s => s.hour).sort((a, b) => a - b);
+    const court = this.calendarCourts().find(c => c.id === slots[0].courtId);
+    const duration = court ? court.durationMinutes / 60 : 1;
     return [{
       courtId: slots[0].courtId,
       courtName: slots[0].courtName,
-      startHour: hours[0],
-      endHour: hours[hours.length - 1] + 1,
-      duration: hours[hours.length - 1] + 1 - hours[0]
+      startHour: slots[0].hour,
+      endHour: slots[0].hour + duration,
+      duration
     }];
   });
 
@@ -569,7 +578,8 @@ class AdminComponent implements OnInit, AfterViewInit {
     const today = this.toDateInputValue(new Date());
     if (this.scheduleDateFilter() < today) return true;
     if (this.scheduleDateFilter() !== today) return false;
-    const currentHour = new Date().getHours();
+    const now = new Date();
+    const currentHour = now.getHours() + now.getMinutes() / 60;
     return hour < currentHour;
   }
 
@@ -619,7 +629,9 @@ class AdminComponent implements OnInit, AfterViewInit {
   }
 
   formatHour(hour: number): string {
-    return `${hour.toString().padStart(2, '0')}:00`;
+    const h = Math.floor(hour);
+    const m = Math.round((hour - h) * 60);
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
   }
 
   toggleSlot(courtId: string, courtName: string, hour: number): void {
@@ -627,14 +639,9 @@ class AdminComponent implements OnInit, AfterViewInit {
     const existingIdx = current.findIndex(s => s.courtId === courtId && s.hour === hour);
 
     if (existingIdx >= 0) {
-      current.splice(existingIdx, 1);
-      this.selectedSlots.set([...current]);
+      this.selectedSlots.set([]);
     } else {
-      if (current.length > 0 && current[0].courtId !== courtId) {
-        this.selectedSlots.set([{ courtId, courtName, hour, date: this.scheduleDateFilter() }]);
-      } else {
-        this.selectedSlots.set([...current, { courtId, courtName, hour, date: this.scheduleDateFilter() }]);
-      }
+      this.selectedSlots.set([{ courtId, courtName, hour, date: this.scheduleDateFilter() }]);
     }
 
     this.selectedReservation.set(null);
@@ -665,7 +672,7 @@ class AdminComponent implements OnInit, AfterViewInit {
   openAdminBooking(courtId: string, courtName: string, hour: number): void {
     this.selectedReservation.set(null);
     this.adminBookingError.set('');
-    this.adminFormData = { customerName: '', customerEmail: '', customerPhone: '', endTime: hour + 1 };
+    this.adminFormData = { customerName: '', customerEmail: '', customerPhone: '' };
     this.selectedSlots.set([{ courtId, courtName, hour, date: this.scheduleDateFilter() }]);
     this.adminBookingSlot.set({ courtId, courtName, hour, date: this.scheduleDateFilter() });
   }
@@ -696,7 +703,6 @@ class AdminComponent implements OnInit, AfterViewInit {
       customerPhone: customerPhone.trim() || undefined,
       date: this.scheduleDateFilter(),
       startTime: timeRange.start,
-      endTime: timeRange.end,
       paymentMethod: 'ONSITE'
     }).subscribe({
       next: () => {
@@ -767,7 +773,8 @@ class AdminComponent implements OnInit, AfterViewInit {
       name: court.name,
       type: court.type,
       description: court.description || '',
-      pricePerHour: court.pricePerHour,
+      durationMinutes: court.durationMinutes,
+      price: court.price,
       imageUrl: court.imageUrl || '',
       amenitiesInput: court.amenities.join(', '),
       isActive: court.isActive
@@ -808,7 +815,8 @@ class AdminComponent implements OnInit, AfterViewInit {
       name: '',
       type: 'TENIS',
       description: '',
-      pricePerHour: 20,
+      durationMinutes: 60,
+      price: 25,
       imageUrl: 'https://images.pexels.com/photos/209977/pexels-photo-209977.jpeg?auto=compress&cs=tinysrgb&w=800',
       amenitiesInput: '',
       isActive: true
@@ -825,7 +833,8 @@ class AdminComponent implements OnInit, AfterViewInit {
       name: this.courtForm.name,
       type: this.courtForm.type,
       description: this.courtForm.description,
-      pricePerHour: this.courtForm.pricePerHour,
+      durationMinutes: this.courtForm.durationMinutes,
+      price: this.courtForm.price,
       imageUrl: this.courtForm.imageUrl,
       amenities
     };
@@ -932,7 +941,6 @@ class AdminComponent implements OnInit, AfterViewInit {
       customerPhone: customerPhone.trim() || undefined,
       date: this.scheduleDateFilter(),
       startTime: hour,
-      endTime: hour + 1,
       paymentMethod: 'ONSITE'
     }).subscribe({
       next: () => {

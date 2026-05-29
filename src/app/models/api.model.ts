@@ -18,7 +18,7 @@ export interface ReservationRequest {
   customerPhone?: string;
   date: string;
   startTime: number;
-  endTime: number;
+  endTime?: number;
   paymentMethod: string;
 }
 
