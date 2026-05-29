@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, AfterViewInit, ElementRef, ViewChild, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { forkJoin } from 'rxjs';
@@ -14,6 +14,14 @@ interface SelectedBlock {
   count: number;
 }
 
+interface CalendarDay {
+  date: Date;
+  day: number;
+  isToday: boolean;
+  isSelected: boolean;
+  dateStr: string;
+}
+
 @Component({
   selector: 'app-court-detail',
   standalone: true,
@@ -21,7 +29,7 @@ interface SelectedBlock {
   templateUrl: './court-detail.component.html',
   styleUrls: ['./court-detail.component.css']
 })
-export class CourtDetailComponent implements OnInit {
+export class CourtDetailComponent implements OnInit, AfterViewInit {
   private readonly route = inject(ActivatedRoute);
   private readonly courtService = inject(CourtService);
   private readonly reservationService = inject(ReservationService);
@@ -39,12 +47,44 @@ export class CourtDetailComponent implements OnInit {
   availableSlots = signal<TimeSlot[]>([]);
   createdReservations = signal<{id: string; startTime: number; endTime: number}[]>([]);
   loadingCourt = signal(true);
+  dropdownOpen = signal(false);
 
   minDate = this.getTodayString();
 
-  getTodayString(): string {
+  @ViewChild('mobileCalendarStrip') mobileCalendarStrip!: ElementRef;
+
+  mobileCalendarDays = computed<CalendarDay[]>(() => {
     const today = new Date();
-    return today.toISOString().split('T')[0];
+    today.setHours(0, 0, 0, 0);
+    const todayStr = this.getTodayString();
+    const selectedDate = this.selectedDate();
+    const maxDate = new Date(today);
+    maxDate.setMonth(maxDate.getMonth() + 3);
+    const days: CalendarDay[] = [];
+    const current = new Date(today);
+    while (current <= maxDate) {
+      const dateStr = this.localDateStr(current);
+      days.push({
+        date: new Date(current),
+        day: current.getDate(),
+        isToday: dateStr === todayStr,
+        isSelected: dateStr === selectedDate,
+        dateStr
+      });
+      current.setDate(current.getDate() + 1);
+    }
+    return days;
+  });
+
+  getTodayString(): string {
+    return this.localDateStr(new Date());
+  }
+
+  private localDateStr(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 
   durationHours = computed(() => {
@@ -108,6 +148,13 @@ export class CourtDetailComponent implements OnInit {
 
       return true;
     });
+  });
+
+  displaySlots = computed(() => {
+    const selected = this.selectedSlots();
+    return this.availableStartSlots().filter(slot =>
+      !this.isPastSlot(slot.time) && !selected.includes(slot.time)
+    );
   });
 
   totalPrice = computed(() => {
@@ -300,5 +347,111 @@ export class CourtDetailComponent implements OnInit {
   closeSuccess(): void {
     this.showSuccess.set(false);
     this.selectedSlots.set([]);
+  }
+
+  ngAfterViewInit() {
+    setTimeout(() => this.scrollToToday(), 100);
+  }
+
+  scrollToToday() {
+    if (!this.mobileCalendarStrip) return;
+    const strip = this.mobileCalendarStrip.nativeElement;
+    const selectedEl = strip.querySelector('.selected');
+    if (selectedEl) {
+      selectedEl.scrollIntoView({ inline: 'center', block: 'nearest' });
+    }
+  }
+
+  isDayDisabled(dateStr: string): boolean {
+    const today = this.getTodayString();
+    const maxDate = new Date();
+    maxDate.setMonth(maxDate.getMonth() + 3);
+    const maxStr = maxDate.toISOString().split('T')[0];
+    return dateStr < today || dateStr > maxStr;
+  }
+
+  getDayShortName(date: Date): string {
+    const names = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'];
+    return names[date.getDay()];
+  }
+
+  selectDay(dateStr: string): void {
+    if (this.isDayDisabled(dateStr)) return;
+    this.onDateChange(dateStr);
+  }
+
+  formatLongDate(dateStr: string): string {
+    const d = new Date(dateStr + 'T12:00:00');
+    return new Intl.DateTimeFormat('es-ES', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }).format(d);
+  }
+
+  formatShortDate(dateStr: string): string {
+    const d = new Date(dateStr + 'T12:00:00');
+    return new Intl.DateTimeFormat('es-ES', {
+      day: 'numeric',
+      month: 'short'
+    }).format(d);
+  }
+
+  selectedDropdownLabel(): string {
+    const slots = this.selectedSlots();
+    if (slots.length === 1) {
+      return `${this.formatTime(slots[0])} - ${this.formatTime(slots[0] + this.durationHours())}`;
+    }
+    return 'Selecciona una hora';
+  }
+
+  toggleDropdown(event: Event): void {
+    event.stopPropagation();
+    this.dropdownOpen.update(v => !v);
+  }
+
+  onDropdownSelect(time: number): void {
+    this.selectSlot(time);
+    this.dropdownOpen.set(false);
+  }
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    this.dropdownOpen.set(false);
+  }
+
+  prevDay(): void {
+    if (!this.canGoPrevDay()) return;
+    const current = new Date(this.selectedDate());
+    current.setDate(current.getDate() - 1);
+    this.onDateChange(this.toDateInputValue(current));
+  }
+
+  nextDay(): void {
+    if (!this.canGoNextDay()) return;
+    const current = new Date(this.selectedDate());
+    current.setDate(current.getDate() + 1);
+    this.onDateChange(this.toDateInputValue(current));
+  }
+
+  canGoPrevDay(): boolean {
+    const current = new Date(this.selectedDate());
+    const today = new Date(this.getTodayString());
+    current.setHours(0, 0, 0, 0);
+    return current > today;
+  }
+
+  canGoNextDay(): boolean {
+    const current = new Date(this.selectedDate());
+    const max = new Date();
+    max.setMonth(max.getMonth() + 3);
+    max.setHours(0, 0, 0, 0);
+    current.setHours(0, 0, 0, 0);
+    return current < max;
+  }
+
+  private toDateInputValue(date: Date): string {
+    return this.localDateStr(date);
   }
 }

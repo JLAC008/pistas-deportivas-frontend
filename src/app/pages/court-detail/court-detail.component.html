@@ -76,11 +76,44 @@
                   </svg>
                   Fecha
                 </h2>
-                <app-date-picker
-                  [selected]="selectedDate()"
-                  [min]="minDate"
-                  (selectDate)="onDateChange($event)">
-                </app-date-picker>
+                <div class="calendar-mobile">
+                  <div class="mobile-top-bar">
+                    <div class="mobile-date-nav">
+                      <button type="button" class="mobile-arrow" [disabled]="!canGoPrevDay()" (click)="prevDay()" aria-label="Dia anterior">
+                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M12 6l-4 4 4 4" />
+                        </svg>
+                      </button>
+                      <span class="mobile-date-text">{{ formatShortDate(selectedDate()) }}</span>
+                      <button type="button" class="mobile-arrow" [disabled]="!canGoNextDay()" (click)="nextDay()" aria-label="Dia siguiente">
+                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M8 6l4 4-4 4" />
+                        </svg>
+                      </button>
+                    </div>
+                    <button type="button" class="mobile-today-btn" (click)="selectDay(getTodayString())">Hoy</button>
+                  </div>
+                  <div class="mobile-calendar-strip" #mobileCalendarStrip>
+                    @for (day of mobileCalendarDays(); track day.dateStr) {
+                      <button
+                        type="button"
+                        class="mobile-day-chip"
+                        [class.selected]="day.isSelected"
+                        [disabled]="isDayDisabled(day.dateStr)"
+                        (click)="selectDay(day.dateStr)">
+                        <span class="mobile-day-name">{{ getDayShortName(day.date) }}</span>
+                        <span class="mobile-day-num">{{ day.day }}</span>
+                      </button>
+                    }
+                  </div>
+                </div>
+                <div class="calendar-desktop">
+                  <app-date-picker
+                    [selected]="selectedDate()"
+                    [min]="minDate"
+                    (selectDate)="onDateChange($event)">
+                  </app-date-picker>
+                </div>
               </aside>
 
               <div class="booking-hours-panel">
@@ -98,18 +131,39 @@
                 </div>
 
                 <div class="time-slots">
-                  @for (slot of availableStartSlots(); track slot.time) {
+                  @for (slot of displaySlots(); track slot.time) {
                     <button
                       class="time-slot"
                       [class.selected]="isSlotSelected(slot.time)"
-                      [class.available]="slot.available && !isPastSlot(slot.time)"
-                      [class.past]="isPastSlot(slot.time)"
-                      [class.reserved]="false"
-                      [disabled]="isPastSlot(slot.time)"
+                      [class.available]="slot.available"
                       (click)="selectSlot(slot.time)">
                       {{ formatTime(slot.time) }} - {{ formatTime(slot.time + durationHours()) }}
                     </button>
                   }
+                </div>
+
+                <div class="time-slots-mobile-select">
+                  <div class="time-dropdown" [class.open]="dropdownOpen()">
+                    <button type="button" class="time-dropdown-trigger" (click)="toggleDropdown($event)">
+                      <span>{{ selectedDropdownLabel() }}</span>
+                      <svg class="time-dropdown-chevron" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 8l4 4 4-4" />
+                      </svg>
+                    </button>
+                    @if (dropdownOpen()) {
+                      <div class="time-dropdown-panel">
+                        @for (slot of displaySlots(); track slot.time) {
+                          <button
+                            type="button"
+                            class="time-dropdown-option"
+                            [class.selected]="isSlotSelected(slot.time)"
+                            (click)="onDropdownSelect(slot.time); $event.stopPropagation()">
+                            {{ formatTime(slot.time) }} - {{ formatTime(slot.time + durationHours()) }}
+                          </button>
+                        }
+                      </div>
+                    }
+                  </div>
                 </div>
 
                 @if (selectedSlots().length > 0) {
