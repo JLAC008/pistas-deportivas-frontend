@@ -51,6 +51,13 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
 
   minDate = this.getTodayString();
 
+  isMobile = signal(window.innerWidth <= 768);
+
+  @HostListener('window:resize')
+  onResize() {
+    this.isMobile.set(window.innerWidth <= 768);
+  }
+
   @ViewChild('mobileCalendarStrip') mobileCalendarStrip!: ElementRef;
 
   mobileCalendarDays = computed<CalendarDay[]>(() => {

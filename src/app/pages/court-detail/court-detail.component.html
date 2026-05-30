@@ -54,8 +54,8 @@
       </div>
 
       @if (c.isActive) {
-        @if (availableSlots().length > 0) {
-          <div class="booking-section-title mobile-only">
+        @if (availableSlots().length > 0 && isMobile()) {
+          <div class="booking-section-title">
             <h2>
               <svg class="booking-icon booking-icon-title" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <rect x="4" y="5" width="16" height="15" rx="2" />
@@ -87,16 +87,18 @@
       @if (c.isActive) {
         <div class="booking-section">
           @if (availableSlots().length > 0) {
-            <div class="booking-section-title desktop-only">
-              <h2>
-                <svg class="booking-icon booking-icon-title" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <rect x="4" y="5" width="16" height="15" rx="2" />
-                  <path d="M8 3v4M16 3v4M4 10h16" />
-                  <path d="M9 15l2 2 4-5" />
-                </svg>
-                Reservar
-              </h2>
-            </div>
+            @if (!isMobile()) {
+              <div class="booking-section-title">
+                <h2>
+                  <svg class="booking-icon booking-icon-title" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="4" y="5" width="16" height="15" rx="2" />
+                    <path d="M8 3v4M16 3v4M4 10h16" />
+                    <path d="M9 15l2 2 4-5" />
+                  </svg>
+                  Reservar
+                </h2>
+              </div>
+            }
 
             <div class="booking-grid">
               <aside class="booking-calendar-panel">
