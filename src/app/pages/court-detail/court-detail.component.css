@@ -596,7 +596,13 @@
   }
 
   .booking-customer-row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(3, 150px);
+  }
+}
+
+@media (max-width: 1250px) {
+  .booking-card .time-slots {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
