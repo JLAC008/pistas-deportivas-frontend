@@ -556,7 +556,10 @@
 
 /* ── Calendar: mobile strip vs desktop ── */
 .calendar-desktop { display: block; }
-.calendar-mobile { display: none; }
+
+/* En desktop ocultar la UI mobile */
+.mobile-top-bar,
+.mobile-calendar-strip { display: none; }
 
 
 /* ════════════════════════════════════
@@ -653,8 +656,12 @@
 
   /* Título "Reservar" */
   .booking-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
     padding: 1rem 1rem 0;
     margin-bottom: 0;
+    background: var(--white);
   }
 
   /* ── Grid → columna única ── */
@@ -665,31 +672,31 @@
   }
 
   /* ── CALENDAR PANEL ── */
-  .booking-calendar-panel {
-    padding: 0.85rem 1rem 0.9rem;
-    border: none;
-    border-radius: 0;
-    box-shadow: none;
-    border-bottom: 1px solid rgba(26,58,42,0.08);
-    background: var(--white);
-  }
-
-  .booking-calendar-panel h2 {
-    font-size: 0.8rem;
-    margin-bottom: 0.6rem;
-  }
+  .booking-calendar-panel { display: none; }
 
   .calendar-desktop { display: none; }
-  .calendar-mobile  { display: block; }
 
-  /* Strip de días */
   .mobile-top-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 0.6rem;
+    padding: 0.7rem 1rem 0;
     gap: 0.5rem;
+    background: var(--white);
   }
+
+  .mobile-calendar-strip {
+    display: flex;
+    gap: 0.35rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding: 0.4rem 1rem 0.25rem;
+    background: var(--white);
+    border-bottom: 1px solid rgba(26,58,42,0.08);
+    touch-action: pan-x;
+  }
+
+  .mobile-calendar-strip::-webkit-scrollbar { display: none; }
 
   .mobile-date-nav {
     display: flex;
@@ -751,31 +758,17 @@
     color: var(--white);
   }
 
-  .mobile-calendar-strip {
-    display: flex;
-    gap: 0.28rem;
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding-bottom: 0.4rem;
-    -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x mandatory;
-  }
-
-  .mobile-calendar-strip::-webkit-scrollbar { display: none; }
-
   .mobile-day-chip {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 0.42rem 0.48rem;
-    border-radius: 9px;
-    min-width: 40px;
-    flex-shrink: 0;
+    padding: 0.5rem 0.6rem;
+    border-radius: 10px;
+    min-width: 44px;
     cursor: pointer;
     border: none;
-    background: var(--cream);
+    background: var(--white);
     transition: all 0.15s;
-    scroll-snap-align: start;
   }
 
   .mobile-day-chip:hover { background: var(--sage-light); }
@@ -783,24 +776,23 @@
   .mobile-day-chip.selected {
     background: var(--forest);
     color: var(--white);
-    box-shadow: 0 2px 8px -3px rgba(26,58,42,0.4);
+    box-shadow: 0 2px 8px -3px rgba(26,58,42,0.35);
   }
 
   .mobile-day-name {
-    font-size: 0.56rem;
+    font-size: 0.6rem;
     font-weight: 700;
     color: var(--muted);
     text-transform: uppercase;
   }
 
-  .mobile-day-chip.selected .mobile-day-name { color: rgba(255,255,255,0.75); }
+  .mobile-day-chip.selected .mobile-day-name { color: rgba(255,255,255,0.8); }
 
   .mobile-day-num {
-    font-size: 0.92rem;
+    font-size: 1rem;
     font-weight: 700;
     color: var(--forest);
-    margin-top: 0.1rem;
-    line-height: 1;
+    margin-top: 0.15rem;
   }
 
   .mobile-day-chip.selected .mobile-day-num { color: var(--white); }

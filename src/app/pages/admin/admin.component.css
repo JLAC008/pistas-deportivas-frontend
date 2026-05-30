@@ -2085,6 +2085,7 @@
   overflow-x: auto;
   scrollbar-width: none;
   padding-bottom: 0.25rem;
+  touch-action: pan-x;
 }
 
 .mobile-calendar-strip::-webkit-scrollbar {
