@@ -159,9 +159,18 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
 
   displaySlots = computed(() => {
     const selected = this.selectedSlots();
-    return this.availableStartSlots().filter(slot =>
-      !this.isPastSlot(slot.time) && !selected.includes(slot.time)
-    );
+    const duration = this.durationHours();
+    return this.availableStartSlots().filter(slot => {
+      if (this.isPastSlot(slot.time)) return false;
+
+      for (const selTime of selected) {
+        if (slot.time < selTime + duration && slot.time + duration > selTime) {
+          return false;
+        }
+      }
+
+      return true;
+    });
   });
 
   totalPrice = computed(() => {
