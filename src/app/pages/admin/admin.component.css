@@ -2085,6 +2085,7 @@
   overflow-x: auto;
   scrollbar-width: none;
   padding-bottom: 0.25rem;
+  touch-action: pan-x;
 }
 
 .mobile-calendar-strip::-webkit-scrollbar {
@@ -2213,20 +2214,6 @@
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--forest);
-}
-
-.tl-time::after {
-  content: '';
-  position: absolute;
-  right: -22px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 2px solid var(--forest);
-  background: var(--white);
-  z-index: 1;
 }
 
 .tl-card {

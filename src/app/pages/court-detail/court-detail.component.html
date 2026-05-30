@@ -54,18 +54,51 @@
       </div>
 
       @if (c.isActive) {
+        @if (availableSlots().length > 0 && isMobile()) {
+          <div class="booking-section-title">
+            <h2>
+              <svg class="booking-icon booking-icon-title" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="4" y="5" width="16" height="15" rx="2" />
+                <path d="M8 3v4M16 3v4M4 10h16" />
+                <path d="M9 15l2 2 4-5" />
+              </svg>
+              Reservar
+            </h2>
+          </div>
+        }
+        <div class="mobile-top-bar">
+          <span class="mobile-date-text">{{ formatShortDate(selectedDate()) }}</span>
+        </div>
+        <div class="mobile-calendar-strip" #mobileCalendarStrip>
+          @for (day of mobileCalendarDays(); track day.dateStr) {
+            <button
+              type="button"
+              class="mobile-day-chip"
+              [class.selected]="day.isSelected"
+              [disabled]="isDayDisabled(day.dateStr)"
+              (click)="selectDay(day.dateStr)">
+              <span class="mobile-day-name">{{ getDayShortName(day.date) }}</span>
+              <span class="mobile-day-num">{{ day.day }}</span>
+            </button>
+          }
+        </div>
+      }
+
+      @if (c.isActive) {
         <div class="booking-section">
           @if (availableSlots().length > 0) {
-            <div class="booking-section-title">
-              <h2>
-                <svg class="booking-icon booking-icon-title" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <rect x="4" y="5" width="16" height="15" rx="2" />
-                  <path d="M8 3v4M16 3v4M4 10h16" />
-                  <path d="M9 15l2 2 4-5" />
-                </svg>
-                Reservar
-              </h2>
-            </div>
+            @if (!isMobile()) {
+              <div class="booking-section-title">
+                <h2>
+                  <svg class="booking-icon booking-icon-title" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="4" y="5" width="16" height="15" rx="2" />
+                    <path d="M8 3v4M16 3v4M4 10h16" />
+                    <path d="M9 15l2 2 4-5" />
+                  </svg>
+                  Reservar
+                </h2>
+              </div>
+            }
 
             <div class="booking-grid">
               <aside class="booking-calendar-panel">
@@ -76,37 +109,6 @@
                   </svg>
                   Fecha
                 </h2>
-                <div class="calendar-mobile">
-                  <div class="mobile-top-bar">
-                    <div class="mobile-date-nav">
-                      <button type="button" class="mobile-arrow" [disabled]="!canGoPrevDay()" (click)="prevDay()" aria-label="Dia anterior">
-                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M12 6l-4 4 4 4" />
-                        </svg>
-                      </button>
-                      <span class="mobile-date-text">{{ formatShortDate(selectedDate()) }}</span>
-                      <button type="button" class="mobile-arrow" [disabled]="!canGoNextDay()" (click)="nextDay()" aria-label="Dia siguiente">
-                        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                          <path d="M8 6l4 4-4 4" />
-                        </svg>
-                      </button>
-                    </div>
-                    <button type="button" class="mobile-today-btn" (click)="selectDay(getTodayString())">Hoy</button>
-                  </div>
-                  <div class="mobile-calendar-strip" #mobileCalendarStrip>
-                    @for (day of mobileCalendarDays(); track day.dateStr) {
-                      <button
-                        type="button"
-                        class="mobile-day-chip"
-                        [class.selected]="day.isSelected"
-                        [disabled]="isDayDisabled(day.dateStr)"
-                        (click)="selectDay(day.dateStr)">
-                        <span class="mobile-day-name">{{ getDayShortName(day.date) }}</span>
-                        <span class="mobile-day-num">{{ day.day }}</span>
-                      </button>
-                    }
-                  </div>
-                </div>
                 <div class="calendar-desktop">
                   <app-date-picker
                     [selected]="selectedDate()"
@@ -174,6 +176,11 @@
                         @if (selectedBlocks().length > 1) {
                           <span class="block-label">Bloque {{ i + 1 }}</span>
                         }
+                        <button type="button" class="block-remove" (click)="removeBlock(block)" aria-label="Eliminar bloque">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                            <path d="M18 6L6 18M6 6l12 12"/>
+                          </svg>
+                        </button>
                       </span>
                     }
                   </div>
