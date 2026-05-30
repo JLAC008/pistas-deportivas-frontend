@@ -125,7 +125,7 @@
                       <circle cx="12" cy="12" r="8" />
                       <path d="M12 8v5l3 2" />
                     </svg>
-                    Horas disponibles
+                    {{ isMobile() ? 'Horas disponibles' : (displaySlots().length === 0 ? 'No hay horas disponibles para esta fecha' : 'Horas disponibles') }}
                   </span>
                   @if (selectedSlots().length > 0) {
                     <span class="selected-count">{{ selectedSlots().length }} seleccionado{{ selectedSlots().length !== 1 ? 's' : '' }}</span>
@@ -154,14 +154,18 @@
                     </button>
                     @if (dropdownOpen()) {
                       <div class="time-dropdown-panel">
-                        @for (slot of displaySlots(); track slot.time) {
-                          <button
-                            type="button"
-                            class="time-dropdown-option"
-                            [class.selected]="isSlotSelected(slot.time)"
-                            (click)="onDropdownSelect(slot.time); $event.stopPropagation()">
-                            {{ formatTime(slot.time) }} - {{ formatTime(slot.time + durationHours()) }}
-                          </button>
+                        @if (displaySlots().length === 0) {
+                          <div class="time-dropdown-empty">No hay horas disponibles para esta fecha</div>
+                        } @else {
+                          @for (slot of displaySlots(); track slot.time) {
+                            <button
+                              type="button"
+                              class="time-dropdown-option"
+                              [class.selected]="isSlotSelected(slot.time)"
+                              (click)="onDropdownSelect(slot.time); $event.stopPropagation()">
+                              {{ formatTime(slot.time) }} - {{ formatTime(slot.time + durationHours()) }}
+                            </button>
+                          }
                         }
                       </div>
                     }
