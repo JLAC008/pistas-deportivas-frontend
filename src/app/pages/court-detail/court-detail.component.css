@@ -305,6 +305,7 @@
   color: var(--ink);
   font-size: 0.82rem;
   font-weight: 800;
+  gap: 0.75rem;
 }
 
 .booking-step:not(:first-child) { margin-top: 1rem; }
@@ -338,6 +339,24 @@
   font-size: 0.72rem;
   font-weight: 700;
 }
+
+.block-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  color: var(--white);
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  transition: background 0.15s;
+}
+
+.block-remove:hover { background: rgba(255,255,255,0.4); }
 
 .block-label { font-weight: 500; opacity: 0.75; font-size: 0.65rem; }
 

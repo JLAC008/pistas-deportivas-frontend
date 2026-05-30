@@ -127,6 +127,13 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
     return blocks;
   });
 
+  removeBlock(block: SelectedBlock): void {
+    const duration = this.durationHours();
+    this.selectedSlots.update(slots =>
+      slots.filter(t => t < block.startTime || t >= block.endTime)
+    );
+  }
+
   isPastSlot(time: number): boolean {
     const today = this.getTodayString();
     if (this.selectedDate() !== today) return false;
