@@ -11,12 +11,6 @@ services:
     restart: unless-stopped
     networks:
       - dokploy-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.pistas-frontend.rule=Host(`pistasvalleperdido.es`) || Host(`www.pistasvalleperdido.es`)"
-      - "traefik.http.routers.pistas-frontend.entrypoints=websecure"
-      - "traefik.http.routers.pistas-frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.pistas-frontend.loadbalancer.server.port=8081"
 
 networks:
   dokploy-network:
