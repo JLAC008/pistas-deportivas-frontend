@@ -2216,20 +2216,6 @@
   color: var(--forest);
 }
 
-.tl-time::after {
-  content: '';
-  position: absolute;
-  right: -22px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 2px solid var(--forest);
-  background: var(--white);
-  z-index: 1;
-}
-
 .tl-card {
   background: var(--white);
   border-radius: 12px;
