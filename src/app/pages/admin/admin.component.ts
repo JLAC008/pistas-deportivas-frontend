@@ -680,6 +680,12 @@ class AdminComponent implements OnInit, AfterViewInit {
     this.adminBookingSlot.set(null);
   }
 
+  closeDetailOverlay(): void {
+    if (window.innerWidth <= 768) {
+      this.selectedReservation.set(null);
+    }
+  }
+
   openAdminBooking(courtId: string, courtName: string, hour: number): void {
     this.selectedReservation.set(null);
     this.adminBookingError.set('');

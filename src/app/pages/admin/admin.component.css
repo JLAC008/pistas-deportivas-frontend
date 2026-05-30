@@ -2650,6 +2650,36 @@
   .schedule-mobile-view { display: block; }
 
   .admin-schedule { display: none; }
+  .admin-schedule.overlay-active {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0,0,0,0.45);
+    padding: 1rem;
+    overflow-y: auto;
+  }
+  .admin-schedule.overlay-active > .schedule-layout-new {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100%;
+  }
+  .admin-schedule.overlay-active > .schedule-layout-new > .schedule-sidebar,
+  .admin-schedule.overlay-active > .schedule-layout-new > .schedule-board-new {
+    display: none;
+  }
+  .admin-schedule.overlay-active > .schedule-layout-new > .schedule-side-new {
+    display: block;
+    width: 100%;
+    max-width: 480px;
+    margin: 0;
+    background: var(--white);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    padding: 1.5rem;
+    position: relative;
+  }
 
   .schedule-stats, .schedule-layout { grid-template-columns: 1fr; }
   .schedule-hero { padding: 1rem; }

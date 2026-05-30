@@ -46,7 +46,7 @@
 
         <!-- Schedule Calendar -->
         @if (activeTab() === 'schedule') {
-          <section class="admin-schedule">
+          <section class="admin-schedule" [class.overlay-active]="selectedReservation()" (click)="closeDetailOverlay()">
             <div class="schedule-layout-new">
               <!-- Panel izquierdo: Calendario + Resumen -->
               <aside class="schedule-sidebar">
@@ -192,7 +192,7 @@
               </article>
 
               <!-- Panel derecho: Detalle -->
-              <aside class="schedule-side-new">
+              <aside class="schedule-side-new" (click)="$event.stopPropagation()">
                 <!-- Formulario nueva reserva -->
                 @if (adminBookingSlot(); as slot) {
                   <article class="side-card-new admin-mini-form-new">
