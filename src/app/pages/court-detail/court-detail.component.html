@@ -67,20 +67,7 @@
           </div>
         }
         <div class="mobile-top-bar">
-          <div class="mobile-date-nav">
-            <button type="button" class="mobile-arrow" [disabled]="!canGoPrevDay()" (click)="prevDay()" aria-label="Dia anterior">
-              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 6l-4 4 4 4" />
-              </svg>
-            </button>
-            <span class="mobile-date-text">{{ formatShortDate(selectedDate()) }}</span>
-            <button type="button" class="mobile-arrow" [disabled]="!canGoNextDay()" (click)="nextDay()" aria-label="Dia siguiente">
-              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M8 6l4 4-4 4" />
-              </svg>
-            </button>
-          </div>
-          <button type="button" class="mobile-today-btn" (click)="selectDay(getTodayString())">Hoy</button>
+          <span class="mobile-date-text">{{ formatShortDate(selectedDate()) }}</span>
         </div>
         <div class="mobile-calendar-strip" #mobileCalendarStrip>
           @for (day of mobileCalendarDays(); track day.dateStr) {

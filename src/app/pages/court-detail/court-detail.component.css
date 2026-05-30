@@ -679,9 +679,8 @@
   .mobile-top-bar {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     padding: 0.7rem 1rem 0;
-    gap: 0.5rem;
     background: var(--white);
   }
 
@@ -698,64 +697,11 @@
 
   .mobile-calendar-strip::-webkit-scrollbar { display: none; }
 
-  .mobile-date-nav {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    min-width: 0;
-    flex: 1;
-  }
-
-  .mobile-arrow {
-    width: 30px;
-    height: 30px;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    border-radius: 50%;
-    background: var(--cream);
-    color: var(--muted);
-    cursor: pointer;
-    transition: all 0.15s;
-  }
-
-  .mobile-arrow svg { width: 15px; height: 15px; }
-
-  .mobile-arrow:disabled {
-    opacity: 0.3;
-    cursor: not-allowed;
-    pointer-events: none;
-  }
-
   .mobile-date-text {
     font-size: 0.82rem;
     font-weight: 700;
     color: var(--forest);
     white-space: nowrap;
-    min-width: 0;
-    flex: 1;
-    text-align: center;
-  }
-
-  .mobile-today-btn {
-    padding: 0.28rem 0.7rem;
-    border-radius: 999px;
-    border: 1.5px solid var(--forest);
-    background: transparent;
-    color: var(--forest);
-    font-size: 0.7rem;
-    font-weight: 700;
-    cursor: pointer;
-    white-space: nowrap;
-    flex-shrink: 0;
-    transition: all 0.15s;
-  }
-
-  .mobile-today-btn:hover {
-    background: var(--forest);
-    color: var(--white);
   }
 
   .mobile-day-chip {

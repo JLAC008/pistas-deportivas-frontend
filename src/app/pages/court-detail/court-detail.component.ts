@@ -393,8 +393,10 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
   formatShortDate(dateStr: string): string {
     const d = new Date(dateStr + 'T12:00:00');
     return new Intl.DateTimeFormat('es-ES', {
+      weekday: 'long',
       day: 'numeric',
-      month: 'short'
+      month: 'long',
+      year: 'numeric'
     }).format(d);
   }
 
