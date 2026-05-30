@@ -24,16 +24,19 @@ export class DatePickerComponent {
   readonly min = input<string>('');
   readonly selectDate = output<string>();
 
-  private today = new Date();
-  private readonly minDate = this.toStr(this.today);
-  private readonly maxDate = this.toStr(new Date(this.today.getFullYear(), this.today.getMonth() + 3, 0));
+  private get todayDate(): Date { return new Date(); }
+  private get minDate(): string { return this.toStr(this.todayDate); }
+  private get maxDate(): string {
+    const d = this.todayDate;
+    return this.toStr(new Date(d.getFullYear(), d.getMonth() + 3, 0));
+  }
 
   viewDate = signal(new Date());
 
   private clampView = effect(() => {
     const v = this.viewDate();
-    const cy = this.today.getFullYear();
-    const cm = this.today.getMonth();
+    const cy = this.todayDate.getFullYear();
+    const cm = this.todayDate.getMonth();
     const vy = v.getFullYear();
     const vm = v.getMonth();
     const my = cy + Math.floor((cm + 2) / 12);
@@ -56,8 +59,8 @@ export class DatePickerComponent {
     const v = this.viewDate();
     const vy = v.getFullYear();
     const vm = v.getMonth();
-    const cy = this.today.getFullYear();
-    const cm = this.today.getMonth();
+    const cy = this.todayDate.getFullYear();
+    const cm = this.todayDate.getMonth();
     return vy > cy || (vy === cy && vm > cm);
   });
 
@@ -65,8 +68,8 @@ export class DatePickerComponent {
     const v = this.viewDate();
     const vy = v.getFullYear();
     const vm = v.getMonth();
-    const cy = this.today.getFullYear();
-    const cm = this.today.getMonth();
+    const cy = this.todayDate.getFullYear();
+    const cm = this.todayDate.getMonth();
     const my = cy + Math.floor((cm + 2) / 12);
     const mm = (cm + 2) % 12;
     return vy < my || (vy === my && vm < mm);
@@ -109,7 +112,10 @@ export class DatePickerComponent {
   });
 
   private toStr(date: Date): string {
-    return date.toISOString().split('T')[0];
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 
   formatFooter(dateStr: string): string {
@@ -132,7 +138,7 @@ export class DatePickerComponent {
   }
 
   pick(day: Day): void {
-    if (day.dateStr) {
+    if (day.dateStr && !day.disabled) {
       this.selectDate.emit(day.dateStr);
     }
   }
