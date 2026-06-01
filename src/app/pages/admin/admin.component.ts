@@ -73,6 +73,7 @@ class AdminComponent implements OnInit, AfterViewInit {
   mobileReservationHour = signal('');
   mobileCourtFilter = signal<string>('all');
   mobileReservationForm = { customerName: '', customerEmail: '', customerPhone: '' };
+  adminDropdownOpen = signal(false);
 
   reservationHours = Array.from({ length: 30 }, (_, i) => 8 + i * 0.5); // 8.0 to 22.5
   calendarHours = Array.from({ length: 15 }, (_, i) => 8 + i); // 8.0 to 22.0 (1-hour rows)
@@ -99,15 +100,15 @@ class AdminComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit() {
-    setTimeout(() => this.scrollToToday(), 100);
+    setTimeout(() => this.scrollToSelected(), 250);
   }
 
-  scrollToToday() {
+  scrollToSelected() {
     if (!this.mobileCalendarStrip) return;
     const strip = this.mobileCalendarStrip.nativeElement;
-    const todayEl = strip.querySelector('.today');
-    if (todayEl) {
-      todayEl.scrollIntoView({ inline: 'center', block: 'nearest' });
+    const selectedEl = strip.querySelector('.selected') || strip.querySelector('.today');
+    if (selectedEl) {
+      selectedEl.scrollIntoView({ inline: 'center', block: 'nearest' });
     }
   }
 
@@ -116,7 +117,7 @@ class AdminComponent implements OnInit, AfterViewInit {
     if (tab === 'courts') this.courtService.loadAdminAll();
     if (tab === 'reservations' || tab === 'schedule' || tab === 'stats') this.reservationService.loadAll();
     if (tab === 'schedule') {
-      setTimeout(() => this.scrollToToday(), 100);
+      setTimeout(() => this.scrollToSelected(), 250);
     }
   }
 
@@ -347,7 +348,7 @@ class AdminComponent implements OnInit, AfterViewInit {
     return days;
   });
 
-  // Mobile: today forwards 3 months
+  // Mobile: first reservation (or today) forwards 3 months
   mobileCalendarDays = computed(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -356,7 +357,7 @@ class AdminComponent implements OnInit, AfterViewInit {
     const maxDate = new Date(today);
     maxDate.setMonth(maxDate.getMonth() + 3);
 
-    const minDate = new Date(today);
+    const minDate = this.getEffectiveMinDate();
 
     const days: CalendarDay[] = [];
     const current = new Date(minDate);
@@ -419,9 +420,16 @@ class AdminComponent implements OnInit, AfterViewInit {
   }
 
   // P4: Calendar navigation limits
+  private getEffectiveMinDate(): Date {
+    const first = this.firstReservationDate();
+    const d = first ? new Date(first) : new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
   private getMinMonth(): { year: number; month: number } {
-    const today = new Date();
-    return { year: today.getFullYear(), month: today.getMonth() };
+    const min = this.getEffectiveMinDate();
+    return { year: min.getFullYear(), month: min.getMonth() };
   }
 
   private getMaxMonth(): { year: number; month: number } {
@@ -452,12 +460,13 @@ class AdminComponent implements OnInit, AfterViewInit {
     const dayDate = day.date;
     dayDate.setHours(0, 0, 0, 0);
 
-    // Cannot select past dates
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (dayDate < today) return true;
+    // No antes de la primera reserva (o hoy si no hay reservas)
+    const minDate = this.getEffectiveMinDate();
+    if (dayDate < minDate) return true;
 
     // Fecha maxima: hoy + 3 meses
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const maxDate = new Date(today);
     maxDate.setMonth(maxDate.getMonth() + 3);
 
@@ -489,6 +498,7 @@ class AdminComponent implements OnInit, AfterViewInit {
     const dateStr = this.toDateInputValue(day.date);
     this.scheduleDateFilter.set(dateStr);
     this.syncCalendarToDate(day.date);
+    setTimeout(() => this.scrollToSelected(), 50);
   }
 
   prevDay(): void {
@@ -497,6 +507,7 @@ class AdminComponent implements OnInit, AfterViewInit {
     current.setDate(current.getDate() - 1);
     this.scheduleDateFilter.set(this.toDateInputValue(current));
     this.syncCalendarToDate(current);
+    setTimeout(() => this.scrollToSelected(), 50);
   }
 
   nextDay(): void {
@@ -505,14 +516,14 @@ class AdminComponent implements OnInit, AfterViewInit {
     current.setDate(current.getDate() + 1);
     this.scheduleDateFilter.set(this.toDateInputValue(current));
     this.syncCalendarToDate(current);
+    setTimeout(() => this.scrollToSelected(), 50);
   }
 
   canGoPrevDay(): boolean {
     const current = new Date(this.scheduleDateFilter());
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const min = this.getEffectiveMinDate();
     current.setHours(0, 0, 0, 0);
-    return current > today;
+    return current > min;
   }
 
   canGoNextDay(): boolean {
@@ -523,9 +534,7 @@ class AdminComponent implements OnInit, AfterViewInit {
   }
 
   private getMinMobileDate(): Date {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
+    return this.getEffectiveMinDate();
   }
 
   private getMaxMobileDate(): Date {
@@ -593,8 +602,8 @@ class AdminComponent implements OnInit, AfterViewInit {
 
   // P3: Past date check
   isPastDate(): boolean {
-    const today = this.toDateInputValue(new Date());
-    return this.scheduleDateFilter() < today;
+    const minDate = this.toDateInputValue(this.getEffectiveMinDate());
+    return this.scheduleDateFilter() < minDate;
   }
 
   getBlockHeight(block: MergedBlock): number {
@@ -785,6 +794,7 @@ class AdminComponent implements OnInit, AfterViewInit {
     this.selectedReservation.set(null);
     this.closeAdminBooking();
     this.selectedSlots.set([]);
+    setTimeout(() => this.scrollToSelected(), 50);
   }
 
   clearReservationFilters(): void {
@@ -974,11 +984,35 @@ class AdminComponent implements OnInit, AfterViewInit {
     this.mobileReservationForm = { customerName: '', customerEmail: '', customerPhone: '' };
     this.mobileReservationCourt.set('');
     this.mobileReservationHour.set('');
+    this.adminDropdownOpen.set(false);
     this.showMobileReservationModal.set(true);
   }
 
   closeMobileReservation(): void {
     this.showMobileReservationModal.set(false);
+    this.adminDropdownOpen.set(false);
+  }
+
+  toggleAdminDropdown(event: MouseEvent): void {
+    event.stopPropagation();
+    this.adminDropdownOpen.update(v => !v);
+  }
+
+  getSelectedCourtDuration(): number {
+    const court = this.calendarCourts().find(c => c.id === this.mobileReservationCourt());
+    return court ? court.durationMinutes / 60 : 1;
+  }
+
+  getSelectedCourtPrice(): number {
+    const court = this.calendarCourts().find(c => c.id === this.mobileReservationCourt());
+    return court ? court.price : 0;
+  }
+
+  formatDuration(hours: number): string {
+    if (hours < 1) return `${Math.round(hours * 60)}min`;
+    if (hours === 1) return '1h';
+    if (hours === 1.5) return '1h 30min';
+    return `${hours}h`;
   }
 
   createMobileReservation(): void {

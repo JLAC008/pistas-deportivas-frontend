@@ -420,6 +420,7 @@
                 <button
                   type="button"
                   class="mobile-day-chip"
+                  [class.today]="day.isToday"
                   [class.selected]="day.isSelected"
                   [disabled]="isDayDisabled(day)"
                   (click)="selectDay(day)">
@@ -959,7 +960,7 @@
 
                 <div class="mobile-form-group">
                   <label>Pista</label>
-                  <select [(ngModel)]="mobileReservationCourt" (ngModelChange)="mobileReservationHour.set('')">
+                  <select [(ngModel)]="mobileReservationCourt" (ngModelChange)="mobileReservationHour.set(''); adminDropdownOpen.set(false)">
                     <option value="">Seleccionar pista...</option>
                     @for (court of calendarCourts(); track court.id) {
                       <option [value]="court.id">{{ court.name }}</option>
@@ -969,13 +970,50 @@
 
                 <div class="mobile-form-group">
                   <label>Hora disponible</label>
-                  <select [(ngModel)]="mobileReservationHour" [disabled]="!mobileReservationCourt()">
-                    <option value="">Seleccionar hora...</option>
-                    @for (hour of mobileAvailableHours(); track hour) {
-                      <option [value]="hour">{{ formatHour(hour) }}</option>
+                  <div class="admin-time-dropdown" [class.open]="adminDropdownOpen()" [class.disabled]="!mobileReservationCourt()">
+                    <button type="button" class="admin-dropdown-trigger" (click)="toggleAdminDropdown($event)" [disabled]="!mobileReservationCourt()">
+                      <span>{{ mobileReservationHour() ? formatHour(+mobileReservationHour()) + ' - ' + formatHour(+mobileReservationHour() + getSelectedCourtDuration()) : 'Seleccionar hora...' }}</span>
+                      <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M6 8l4 4 4-4"/>
+                      </svg>
+                    </button>
+                    @if (adminDropdownOpen()) {
+                      <div class="admin-dropdown-panel">
+                        @if (mobileAvailableHours().length === 0) {
+                          <div class="admin-dropdown-empty">No hay horas disponibles</div>
+                        } @else {
+                          @for (hour of mobileAvailableHours(); track hour) {
+                            <button
+                              type="button"
+                              class="admin-dropdown-option"
+                              [class.selected]="mobileReservationHour() === '' + hour"
+                              (click)="mobileReservationHour.set('' + hour); adminDropdownOpen.set(false)">
+                              {{ formatHour(hour) }} - {{ formatHour(hour + getSelectedCourtDuration()) }}
+                            </button>
+                          }
+                        }
+                      </div>
                     }
-                  </select>
+                  </div>
                 </div>
+
+                @if (mobileReservationCourt() && mobileReservationHour()) {
+                  <div class="booking-summary-a">
+                    <span class="summary-tag-a">Resumen</span>
+                    <div class="summary-row-a">
+                      <span class="summary-label-a">Horario</span>
+                      <span class="summary-value-a">{{ formatHour(+mobileReservationHour()) }} - {{ formatHour(+mobileReservationHour() + getSelectedCourtDuration()) }}</span>
+                    </div>
+                    <div class="summary-row-a">
+                      <span class="summary-label-a">Duracion</span>
+                      <span class="summary-value-a">{{ formatDuration(getSelectedCourtDuration()) }}</span>
+                    </div>
+                    <div class="summary-row-a summary-total-a">
+                      <span class="summary-label-a">Total</span>
+                      <span class="summary-value-a">{{ getSelectedCourtPrice() }}€</span>
+                    </div>
+                  </div>
+                }
 
                 <div class="mobile-form-group">
                   <label>Nombre del cliente</label>
