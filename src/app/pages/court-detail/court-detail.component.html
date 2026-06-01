@@ -268,8 +268,12 @@
                       class="input"
                       [value]="customerPhone()"
                       (input)="onPhoneInput($event)"
+                      (blur)="phoneTouched.set(true)"
                       placeholder="Tu telefono"
                       required>
+                    @if (phoneTouched() && customerPhone().trim() && !isValidPhone()) {
+                      <p class="form-error">Introduce un telefono valido (9 digitos)</p>
+                    }
                   </div>
                   <div class="form-group">
                     <label for="guest-email">Email para la reserva</label>

@@ -472,6 +472,19 @@
   align-items: center;
 }
 
+/* Error */
+.booking-customer-row .form-group { position: relative; }
+
+.booking-customer-row .form-error {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 0.25rem;
+  color: var(--danger);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
 /* ── Onsite notice ── */
 .onsite-notice {
   display: flex;
@@ -1097,10 +1110,4 @@
 
   .onsite-notice { padding: 0.9rem 1rem; }
 
-  /* Error */
-  .form-error {
-    margin-top: 0.35rem;
-    color: var(--danger);
-    font-size: 0.78rem;
-  }
 }

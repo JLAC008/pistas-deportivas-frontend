@@ -43,6 +43,7 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
   customerName = signal('');
   customerPhone = signal('');
   customerEmail = signal('');
+  phoneTouched = signal(false);
   paymentMethod = signal<'ONLINE' | 'ONSITE'>('ONLINE');
   availableSlots = signal<TimeSlot[]>([]);
   createdReservations = signal<{id: string; startTime: number; endTime: number}[]>([]);
@@ -189,7 +190,7 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
   canBook = computed(() => {
     if (this.selectedSlots().length === 0) return false;
     if (this.paymentMethod() === 'ONSITE') return true;
-    return this.isValidEmail() && this.customerName().trim().length > 0 && this.customerPhone().trim().length > 0;
+    return this.isValidEmail() && this.isValidPhone() && this.customerName().trim().length > 0;
   });
 
   ngOnInit() {
@@ -298,6 +299,10 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
 
   isValidEmail(): boolean {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.customerEmail().trim());
+  }
+
+  isValidPhone(): boolean {
+    return /^\d{9}$/.test(this.customerPhone().trim());
   }
 
   makeReservation(): void {

@@ -65,6 +65,7 @@ class AdminComponent implements OnInit, AfterViewInit {
   // Single slot selection for booking (duration is determined by court)
   selectedSlots = signal<{courtId: string; courtName: string; hour: number; date: string}[]>([]);
   isRangeSelecting = signal(false);
+  selectedCell = signal<{courtId: string; hour: number} | null>(null);
 
   // Mobile reservation modal
   showMobileReservationModal = signal(false);
@@ -75,6 +76,8 @@ class AdminComponent implements OnInit, AfterViewInit {
 
   reservationHours = Array.from({ length: 30 }, (_, i) => 8 + i * 0.5); // 8.0 to 22.5
   calendarHours = Array.from({ length: 15 }, (_, i) => 8 + i); // 8.0 to 22.0 (1-hour rows)
+  readonly ROW_HEIGHT = 48;
+  readonly START_HOUR = 8;
 
   currentMonth = signal(new Date().getMonth());
   currentYear = signal(new Date().getFullYear());
@@ -344,7 +347,7 @@ class AdminComponent implements OnInit, AfterViewInit {
     return days;
   });
 
-  // Mobile: backwards to first reservation + forwards 3 months
+  // Mobile: today forwards 3 months
   mobileCalendarDays = computed(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -353,17 +356,7 @@ class AdminComponent implements OnInit, AfterViewInit {
     const maxDate = new Date(today);
     maxDate.setMonth(maxDate.getMonth() + 3);
 
-    const reservations = this.reservationService.reservations()
-      .filter(r => r.status !== 'CANCELLED');
-
-    let minDate: Date;
-    if (reservations.length > 0) {
-      const timestamps = reservations.map(r => new Date(r.date + 'T00:00:00').getTime());
-      minDate = new Date(Math.min(...timestamps));
-    } else {
-      minDate = new Date(today);
-      minDate.setDate(minDate.getDate() - 7);
-    }
+    const minDate = new Date(today);
 
     const days: CalendarDay[] = [];
     const current = new Date(minDate);
@@ -427,12 +420,8 @@ class AdminComponent implements OnInit, AfterViewInit {
 
   // P4: Calendar navigation limits
   private getMinMonth(): { year: number; month: number } {
-    const first = this.firstReservationDate();
-    if (!first) {
-      const today = new Date();
-      return { year: today.getFullYear(), month: today.getMonth() };
-    }
-    return { year: first.getFullYear(), month: first.getMonth() };
+    const today = new Date();
+    return { year: today.getFullYear(), month: today.getMonth() };
   }
 
   private getMaxMonth(): { year: number; month: number } {
@@ -462,19 +451,17 @@ class AdminComponent implements OnInit, AfterViewInit {
     if (!day.isCurrentMonth) return true;
     const dayDate = day.date;
     dayDate.setHours(0, 0, 0, 0);
-    
-    // Fecha mínima: primera reserva
-    const firstRes = this.firstReservationDate();
-    const minDate = firstRes ? new Date(firstRes) : new Date();
-    minDate.setHours(0, 0, 0, 0);
-    
-    // Fecha máxima: hoy + 3 meses
+
+    // Cannot select past dates
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    if (dayDate < today) return true;
+
+    // Fecha maxima: hoy + 3 meses
     const maxDate = new Date(today);
     maxDate.setMonth(maxDate.getMonth() + 3);
-    
-    return dayDate < minDate || dayDate > maxDate;
+
+    return dayDate > maxDate;
   }
 
   prevMonth(): void {
@@ -522,9 +509,10 @@ class AdminComponent implements OnInit, AfterViewInit {
 
   canGoPrevDay(): boolean {
     const current = new Date(this.scheduleDateFilter());
-    const min = this.getMinMobileDate();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     current.setHours(0, 0, 0, 0);
-    return current > min;
+    return current > today;
   }
 
   canGoNextDay(): boolean {
@@ -535,15 +523,8 @@ class AdminComponent implements OnInit, AfterViewInit {
   }
 
   private getMinMobileDate(): Date {
-    const reservations = this.reservationService.reservations()
-      .filter(r => r.status !== 'CANCELLED');
-    if (reservations.length > 0) {
-      const timestamps = reservations.map(r => new Date(r.date + 'T00:00:00').getTime());
-      return new Date(Math.min(...timestamps));
-    }
     const d = new Date();
     d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() - 7);
     return d;
   }
 
@@ -625,6 +606,67 @@ class AdminComponent implements OnInit, AfterViewInit {
     return halfHourOffset;
   }
 
+  getBookingBlockStyle(block: MergedBlock): { top: string; height: string } {
+    const topPx = (block.startHour - this.START_HOUR) * this.ROW_HEIGHT;
+    const heightPx = block.duration * this.ROW_HEIGHT;
+    return {
+      top: `${topPx + 2}px`,
+      height: `${heightPx - 4}px`
+    };
+  }
+
+  isCellPast(courtId: string, hour: number): boolean {
+    const today = this.toDateInputValue(new Date());
+    if (this.scheduleDateFilter() < today) return true;
+    if (this.scheduleDateFilter() !== today) return false;
+    const now = new Date();
+    const currentHour = now.getHours() + now.getMinutes() / 60;
+    return hour < currentHour;
+  }
+
+  isHourPast(hour: number): boolean {
+    if (!this.isToday()) return false;
+    const now = new Date();
+    const currentHour = now.getHours() + now.getMinutes() / 60;
+    return hour < currentHour;
+  }
+
+  isSlotBookable(courtId: string, hour: number): boolean {
+    return !this.isCellPast(courtId, hour) && !this.isPartOfMergedBlock(courtId, hour);
+  }
+
+  getNowPosition(): number {
+    const today = this.toDateInputValue(new Date());
+    if (this.scheduleDateFilter() !== today) return -1;
+    const now = new Date();
+    const currentHour = now.getHours() + now.getMinutes() / 60;
+    if (currentHour < this.START_HOUR || currentHour > 22) return -1;
+    return (currentHour - this.START_HOUR) * this.ROW_HEIGHT;
+  }
+
+  isToday(): boolean {
+    return this.scheduleDateFilter() === this.toDateInputValue(new Date());
+  }
+
+  getClickedTime(courtId: string, courtName: string, event: MouseEvent): void {
+    const target = event.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const y = event.clientY - rect.top;
+    const hour = Math.floor(y / this.ROW_HEIGHT) + this.START_HOUR;
+    const half = y % this.ROW_HEIGHT >= this.ROW_HEIGHT / 2 ? 0.5 : 0;
+    const clickedHour = hour + half;
+    if (clickedHour >= 22) return;
+    if (this.isCellPast(courtId, clickedHour)) return;
+    if (this.isPartOfMergedBlock(courtId, clickedHour)) return;
+    this.selectedCell.set({ courtId, hour: clickedHour });
+    this.openAdminBooking(courtId, courtName, clickedHour);
+  }
+
+  isSelectedCell(courtId: string, hour: number): boolean {
+    const cell = this.selectedCell();
+    return cell !== null && cell.courtId === courtId && cell.hour === hour;
+  }
+
   getHourBlocksForCell(courtId: string, hour: number): MergedBlock[] {
     return this.mergedBlocks().filter(b =>
       b.courtId === courtId && b.startHour >= hour && b.startHour < hour + 1
@@ -698,6 +740,7 @@ class AdminComponent implements OnInit, AfterViewInit {
     this.selectedSlots.set([]);
     this.adminBookingSlot.set(null);
     this.adminBookingError.set('');
+    this.selectedCell.set(null);
   }
 
   createAdminReservation(): void {

@@ -118,14 +118,10 @@
                   <div class="schedule-nav">
                     <button type="button" class="btn btn-outline btn-sm" (click)="clearScheduleFilters()">Hoy</button>
                     <button type="button" class="btn-nav" [class.disabled]="!canGoPrevDay()" [disabled]="!canGoPrevDay()" (click)="prevDay()">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M15 18l-6-6 6-6"/>
-                      </svg>
+                      &lsaquo;
                     </button>
                     <button type="button" class="btn-nav" [class.disabled]="!canGoNextDay()" [disabled]="!canGoNextDay()" (click)="nextDay()">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 18l6-6-6-6"/>
-                      </svg>
+                      &rsaquo;
                     </button>
                   </div>
                   <h2 class="schedule-date-title">{{ formatLongDate(scheduleDateFilter()) }}</h2>
@@ -138,54 +134,81 @@
 
                 <div class="schedule-calendar-new" aria-label="Calendario de pistas">
                   <div
-                    class="schedule-grid-new"
-                    [style.grid-template-columns]="'76px repeat(' + calendarCourts().length + ', minmax(140px, 1fr))'">
-                    <div class="schedule-cell-new schedule-head-new">Hora</div>
+                    class="schedule-grid-v2"
+                    [style.grid-template-columns]="'52px repeat(' + calendarCourts().length + ', 1fr)'"
+                    [style.grid-template-rows]="'auto repeat(' + calendarHours.length + ', ' + ROW_HEIGHT + 'px)'">
+                    <!-- Header Row -->
+                    <div class="grid-head-v2">Hora</div>
                     @for (court of calendarCourts(); track court.id) {
-                      <div class="schedule-cell-new schedule-head-new">
+                      <div class="grid-head-v2">
                         <strong>{{ court.name }}</strong>
-                        <span>{{ court.type }} &middot; {{ court.price }}&#8364; / {{ court.durationMinutes < 60 ? court.durationMinutes + 'min' : court.durationMinutes === 60 ? '1h' : court.durationMinutes === 90 ? '1h 30min' : '2h' }}</span>
+                        <span>{{ court.type }} &middot; {{ court.durationMinutes < 60 ? court.durationMinutes + 'min' : court.durationMinutes === 60 ? '1h' : court.durationMinutes === 90 ? '1h 30min' : '2h' }}</span>
                       </div>
                     }
 
+                    <!-- Time Labels (one per row, grid item) -->
                     @for (hour of calendarHours; track hour; let hourIdx = $index) {
-                      <div class="schedule-cell-new schedule-time-new" [style.grid-column]="'1'" [style.grid-row]="hourIdx + 2">
-                        <span class="time-hour">{{ formatHour(hour) }}</span>
-                        <span class="time-half">:30</span>
+                      <div class="time-cell-v2" [style.grid-column]="'1'" [style.grid-row]="hourIdx + 2">
+                        <span class="time-lbl-v2" [class.past]="isHourPast(hour)">{{ formatHour(hour) }}</span>
                       </div>
-                      @for (court of calendarCourts(); track court.id; let courtIdx = $index) {
-                        <div class="schedule-cell-new schedule-body-cell stacked-cell" [style.grid-column]="courtIdx + 2" [style.grid-row]="hourIdx + 2">
-                          <div class="cell-bottom-half"></div>
-                          @if (getHourBlocksForCell(court.id, hour); as blocks) {
-                            @if (blocks.length > 0) {
-                              <div class="block-stack">
-                                @for (block of blocks; track block.startHour) {
-                                  <button
-                                    type="button"
-                                    class="schedule-booking-new stacked-booking"
-                                    [class.half-block]="block.duration < 1"
-                                    [class.full-block]="block.duration >= 1"
-                                    [class.paid]="block.reservation.paymentStatus === 'PAID'"
-                                    [class.pending]="block.reservation.paymentStatus === 'PENDING'"
-                                    [class.confirmed]="block.reservation.status === 'CONFIRMED'"
-                                    (click)="selectReservation(block.reservation)">
-                                    <span class="booking-time">{{ formatHour(block.startHour) }} — {{ formatHour(block.endHour) }}</span>
-                                    <span class="booking-name">{{ block.reservation.customerName }}</span>
-                                    <span class="booking-status">{{ getPaymentStatusLabel(block.reservation.paymentStatus) }}</span>
-                                  </button>
-                                }
-                              </div>
-                            } @else {
-                              <button
-                                type="button"
-                                class="schedule-empty-new"
-                                (click)="openAdminBooking(court.id, court.name, hour)">
-                                Libre
-                              </button>
-                            }
+                    }
+
+                    <!-- Court Columns (spanning all hour rows) -->
+                    @for (court of calendarCourts(); track court.id; let courtIdx = $index) {
+                      <div
+                        class="court-col-v2"
+                        [style.grid-column]="courtIdx + 2"
+                        [style.grid-row]="'2 / ' + (calendarHours.length + 2)"
+                        (click)="getClickedTime(court.id, court.name, $event)">
+
+                        <!-- Clicked cell highlight -->
+                        @if (selectedCell(); as cell) {
+                          @if (cell.courtId === court.id) {
+                            <div class="cell-highlight-v2" [style.top]="(cell.hour - START_HOUR) * ROW_HEIGHT + 'px'" [style.height]="(court.durationMinutes / 60) * ROW_HEIGHT + 'px'"></div>
                           }
-                        </div>
-                      }
+                        }
+
+                        <!-- Hour lines -->
+                        @for (hour of calendarHours; track hour) {
+                          <div class="hline-v2" [style.top]="(hour - START_HOUR) * ROW_HEIGHT + 'px'"></div>
+                        }
+
+                        <!-- Past zone overlay -->
+                        @if (isToday() && getNowPosition() >= 0) {
+                          <div class="past-zone-v2" [style.height]="getNowPosition() + 'px'"></div>
+                        }
+
+                        <!-- Now indicator -->
+                        @if (getNowPosition() >= 0) {
+                          <div class="now-line-v2" [style.top]="getNowPosition() + 'px'"></div>
+                        }
+
+                        <!-- Booking Blocks -->
+                        @for (block of mergedBlocks(); track block.startHour) {
+                          @if (block.courtId === court.id) {
+                            <button
+                              type="button"
+                              class="booking-abs-v2"
+                              [class.confirmed]="block.reservation.status === 'CONFIRMED'"
+                              [class.paid]="block.reservation.paymentStatus === 'PAID'"
+                              [class.pending]="block.reservation.paymentStatus === 'PENDING'"
+                              [class.past-dim]="isCellPast(court.id, block.startHour)"
+                              [ngStyle]="getBookingBlockStyle(block)"
+                              (click)="selectReservation(block.reservation); $event.stopPropagation()">
+                              @if (block.duration >= 1) {
+                                <span class="bk-time-v2">{{ formatHour(block.startHour) }} — {{ formatHour(block.endHour) }}</span>
+                                <span class="bk-name-v2">{{ block.reservation.customerName }}</span>
+                                <span class="bk-status-v2">{{ getPaymentStatusLabel(block.reservation.paymentStatus) }}</span>
+                              } @else if (block.duration >= 0.5) {
+                                <span class="bk-time-v2">{{ formatHour(block.startHour) }} — {{ formatHour(block.endHour) }}</span>
+                                <span class="bk-name-v2">{{ block.reservation.customerName }}</span>
+                              } @else {
+                                <span class="bk-name-v2 mini">{{ block.reservation.customerName }}</span>
+                              }
+                            </button>
+                          }
+                        }
+                      </div>
                     }
                   </div>
                 </div>
