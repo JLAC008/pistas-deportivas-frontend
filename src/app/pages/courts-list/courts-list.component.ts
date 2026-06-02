@@ -25,7 +25,12 @@ export class CourtsListComponent implements OnInit {
   selectedType = signal<string>('all');
 
   readonly courtTypeIcons = COURT_TYPE_ICONS;
-  courtTypes: string[] = ['TENIS', 'FUTBOL', 'PADEL', 'BALONCESTO', 'VOLEIBOL', 'FRONTON'];
+
+  courtTypes = computed(() => {
+    const courts = this.courtService.courts();
+    const activeTypes = new Set(courts.filter(c => c.isActive).map(c => c.type));
+    return [...activeTypes].sort();
+  });
 
   filteredCourts = computed(() => {
     let courts = this.courtService.courts();

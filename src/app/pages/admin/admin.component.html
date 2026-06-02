@@ -334,7 +334,7 @@
                         @if (reservation.customerPhone) {
                           <div class="detail-row-new">
                             <span>Telefono</span>
-                            <a [href]="'tel:' + reservation.customerPhone?.replace(/\s/g, '')" style="color: inherit; text-decoration: none;">
+                            <a [href]="'tel:' + reservation.customerPhone.replace(/\s/g, '')" style="color: inherit; text-decoration: none;">
           {{ reservation.customerPhone }}
         </a>
                           </div>
