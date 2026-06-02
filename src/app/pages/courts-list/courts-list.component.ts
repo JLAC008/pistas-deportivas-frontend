@@ -9,6 +9,7 @@ const COURT_TYPE_ICONS: Record<string, string> = {
   PADEL: '🏓',
   BALONCESTO: '🏀',
   VOLEIBOL: '🏐',
+  FRONTON: '🏗️',
 };
 
 @Component({
@@ -24,7 +25,7 @@ export class CourtsListComponent implements OnInit {
   selectedType = signal<string>('all');
 
   readonly courtTypeIcons = COURT_TYPE_ICONS;
-  courtTypes: string[] = ['TENIS', 'FUTBOL', 'PADEL', 'BALONCESTO', 'VOLEIBOL'];
+  courtTypes: string[] = ['TENIS', 'FUTBOL', 'PADEL', 'BALONCESTO', 'VOLEIBOL', 'FRONTON'];
 
   filteredCourts = computed(() => {
     let courts = this.courtService.courts();

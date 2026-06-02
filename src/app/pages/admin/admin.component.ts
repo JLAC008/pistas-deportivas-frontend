@@ -75,10 +75,10 @@ class AdminComponent implements OnInit, AfterViewInit {
   mobileReservationForm = { customerName: '', customerEmail: '', customerPhone: '' };
   adminDropdownOpen = signal(false);
 
-  reservationHours = Array.from({ length: 30 }, (_, i) => 8 + i * 0.5); // 8.0 to 22.5
-  calendarHours = Array.from({ length: 15 }, (_, i) => 8 + i); // 8.0 to 22.0 (1-hour rows)
+  reservationHours = Array.from({ length: 35 }, (_, i) => 7 + i * 0.5); // 7.0 to 24.0
+  calendarHours = Array.from({ length: 18 }, (_, i) => 7 + i); // 7.0 to 24.0 (1-hour rows)
   readonly ROW_HEIGHT = 48;
-  readonly START_HOUR = 8;
+  readonly START_HOUR = 7;
 
   currentMonth = signal(new Date().getMonth());
   currentYear = signal(new Date().getFullYear());
@@ -212,7 +212,7 @@ class AdminComponent implements OnInit, AfterViewInit {
     const existing = this.scheduledReservations().filter(r => r.court.id === courtId && r.date === date);
     return this.calendarHours.filter(hour => {
       const end = hour + duration;
-      if (end > 23.0) return false;
+      if (end > 24.0) return false;
       return !existing.some(r => hour < r.endTime && end > r.startTime);
     });
   });
@@ -649,7 +649,7 @@ class AdminComponent implements OnInit, AfterViewInit {
     if (this.scheduleDateFilter() !== today) return -1;
     const now = new Date();
     const currentHour = now.getHours() + now.getMinutes() / 60;
-    if (currentHour < this.START_HOUR || currentHour > 22) return -1;
+    if (currentHour < this.START_HOUR || currentHour >= 24) return -1;
     return (currentHour - this.START_HOUR) * this.ROW_HEIGHT;
   }
 
@@ -664,7 +664,7 @@ class AdminComponent implements OnInit, AfterViewInit {
     const hour = Math.floor(y / this.ROW_HEIGHT) + this.START_HOUR;
     const half = y % this.ROW_HEIGHT >= this.ROW_HEIGHT / 2 ? 0.5 : 0;
     const clickedHour = hour + half;
-    if (clickedHour >= 22) return;
+    if (clickedHour >= 24) return;
     if (this.isCellPast(courtId, clickedHour)) return;
     if (this.isPartOfMergedBlock(courtId, clickedHour)) return;
     this.selectedCell.set({ courtId, hour: clickedHour });

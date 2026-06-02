@@ -154,7 +154,7 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
       const start = slot.time;
       const end = start + duration;
 
-      if (end > 23.0) return false;
+      if (end > 24.0) return false;
 
       for (let t = start; t < end; t += 0.5) {
         const slotAtTime = slots.find(s => s.time === t);
