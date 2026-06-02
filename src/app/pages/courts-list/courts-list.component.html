@@ -20,7 +20,7 @@
             (click)="selectedType.set('all')">
             Todas
           </button>
-          @for (type of courtTypes; track type) {
+          @for (type of courtTypes(); track type) {
             <button
               class="btn"
               [class.btn-primary]="selectedType() === type"
@@ -34,7 +34,7 @@
         <!-- Filtro Mobile -->
         <select class="select filter-sort mobile-only" style="width: 100%;" [value]="selectedType()" (change)="selectedType.set($any($event.target).value)">
           <option value="all">Todas las pistas</option>
-          @for (type of courtTypes; track type) {
+          @for (type of courtTypes(); track type) {
             <option [value]="type">{{ courtTypeIcons[type] }} {{ type | titlecase }}</option>
           }
         </select>
