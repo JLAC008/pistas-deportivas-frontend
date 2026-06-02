@@ -334,7 +334,9 @@
                         @if (reservation.customerPhone) {
                           <div class="detail-row-new">
                             <span>Telefono</span>
-                            <strong>{{ reservation.customerPhone }}</strong>
+                            <a [href]="'tel:' + reservation.customerPhone?.replace(/\s/g, '')" style="color: inherit; text-decoration: none;">
+          {{ reservation.customerPhone }}
+        </a>
                           </div>
                         }
                       </div>
@@ -842,6 +844,7 @@
                       <option value="PADEL">Padel</option>
                       <option value="BALONCESTO">Baloncesto</option>
                       <option value="VOLEIBOL">Voleibol</option>
+                      <option value="FRONTON">Frontón</option>
                     </select>
                   </div>
                 </div>

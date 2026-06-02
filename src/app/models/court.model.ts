@@ -1,4 +1,4 @@
-export type CourtType = 'TENIS' | 'FUTBOL' | 'PADEL' | 'BALONCESTO' | 'VOLEIBOL';
+export type CourtType = 'TENIS' | 'FUTBOL' | 'PADEL' | 'BALONCESTO' | 'VOLEIBOL' | 'FRONTON';
 export type PaymentMethod = 'ONLINE' | 'ONSITE';
 export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
 export type ReservationStatus = 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
