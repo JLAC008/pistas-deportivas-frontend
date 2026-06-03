@@ -20,6 +20,7 @@ export interface ReservationRequest {
   startTime: number;
   endTime?: number;
   paymentMethod: string;
+  bookingGroup?: string;
 }
 
 export interface AvailabilityResponse {
@@ -36,6 +37,17 @@ export interface PaymentInitiateResponse {
   dsSignatureVersion: string;
   dsMerchantParameters: string;
   dsSignature: string;
+}
+
+export interface PaymentConfirmRequest {
+  dsMerchantParameters: string;
+  dsSignature: string;
+}
+
+export interface PaymentConfirmResponse {
+  success: boolean;
+  order: string;
+  transactionId: string;
 }
 
 export interface PaymentResponse {

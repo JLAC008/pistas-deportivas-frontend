@@ -293,9 +293,11 @@
 
                 <button
                   class="btn btn-primary btn-lg"
-                  [disabled]="!canBook() || isBooking()"
+                  [disabled]="!canBook() || isBooking() || redirecting()"
                   (click)="makeReservation()">
-                  @if (isBooking()) {
+                  @if (redirecting()) {
+                    Redirigiendo al pago...
+                  } @else if (isBooking()) {
                     Reservando...
                   } @else {
                     Confirmar Reserva{{ selectedSlots().length > 1 ? 's' : '' }}
@@ -361,10 +363,6 @@
             <p><strong>Email:</strong> {{ customerEmail() || 'Presencial' }}</p>
             <p><strong>Pago:</strong> {{ paymentMethodLabel() }}</p>
           </div>
-          @if (paymentMethod() === 'ONLINE') {
-            <p class="email-confirmation-note">Redirigiendo a la pasarela de pago...</p>
-            <button class="btn btn-primary" (click)="redirectToPayment()">Ir a pagar ahora</button>
-          }
           <button class="btn btn-outline" routerLink="/" (click)="closeSuccess()">Volver a pistas</button>
         </div>
       </div>

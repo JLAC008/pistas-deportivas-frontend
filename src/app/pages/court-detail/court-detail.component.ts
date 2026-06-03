@@ -47,6 +47,7 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
   paymentMethod = signal<'ONLINE' | 'ONSITE'>('ONLINE');
   availableSlots = signal<TimeSlot[]>([]);
   createdReservations = signal<{id: string; startTime: number; endTime: number}[]>([]);
+  redirecting = signal(false);
   loadingCourt = signal(true);
   dropdownOpen = signal(false);
 
@@ -312,6 +313,7 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
 
     this.isBooking.set(true);
     const isOnsite = this.paymentMethod() === 'ONSITE';
+    const bookingGroup = crypto.randomUUID();
 
     const observables = blocks.map(block =>
       this.reservationService.create({
@@ -322,7 +324,8 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
         date: this.selectedDate(),
         startTime: block.startTime,
         endTime: block.endTime,
-        paymentMethod: this.paymentMethod()
+        paymentMethod: this.paymentMethod(),
+        bookingGroup
       })
     );
 
@@ -332,7 +335,11 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
           reservations.map(r => ({ id: r.id, startTime: r.startTime, endTime: r.endTime }))
         );
         this.isBooking.set(false);
-        this.showSuccess.set(true);
+        if (isOnsite) {
+          this.showSuccess.set(true);
+        } else {
+          this.redirectToPayment();
+        }
       },
       error: () => {
         this.isBooking.set(false);
@@ -343,6 +350,7 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
   redirectToPayment(): void {
     const reservations = this.createdReservations();
     if (reservations.length === 0) return;
+    this.redirecting.set(true);
     this.paymentService.initiate(reservations[0].id).subscribe({
       next: (payment) => {
         const form = document.createElement('form');
@@ -364,6 +372,9 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
 
         document.body.appendChild(form);
         form.submit();
+      },
+      error: () => {
+        this.redirecting.set(false);
       }
     });
   }
