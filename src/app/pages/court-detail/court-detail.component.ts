@@ -5,7 +5,7 @@ import { forkJoin } from 'rxjs';
 import { CourtService } from '../../services/court.service';
 import { ReservationService } from '../../services/reservation.service';
 import { PaymentService } from '../../services/payment.service';
-import { Court, TimeSlot } from '../../models/court.model';
+import { Court, PaymentMethod, TimeSlot } from '../../models/court.model';
 import { DatePickerComponent } from '../../components/date-picker/date-picker.component';
 
 interface SelectedBlock {
@@ -44,10 +44,11 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
   customerPhone = signal('');
   customerEmail = signal('');
   phoneTouched = signal(false);
-  paymentMethod = signal<'ONLINE' | 'ONSITE'>('ONLINE');
+  paymentMethod = signal<PaymentMethod>('ONLINE');
   availableSlots = signal<TimeSlot[]>([]);
   createdReservations = signal<{id: string; startTime: number; endTime: number}[]>([]);
   redirecting = signal(false);
+  bookingError = signal('');
   loadingCourt = signal(true);
   dropdownOpen = signal(false);
 
@@ -311,6 +312,7 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
     const blocks = this.selectedBlocks();
     if (!court || blocks.length === 0) return;
 
+    this.bookingError.set('');
     this.isBooking.set(true);
     const isOnsite = this.paymentMethod() === 'ONSITE';
     const bookingGroup = crypto.randomUUID();
@@ -341,8 +343,9 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
           this.redirectToPayment();
         }
       },
-      error: () => {
+      error: (err) => {
         this.isBooking.set(false);
+        this.bookingError.set(this.getApiErrorMessage(err, 'No se pudo crear la reserva. Revisa los datos e intentalo de nuevo.'));
       }
     });
   }
@@ -373,19 +376,45 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
         document.body.appendChild(form);
         form.submit();
       },
-      error: () => {
+      error: (err) => {
         this.redirecting.set(false);
+        this.bookingError.set(this.getApiErrorMessage(err, 'No se pudo iniciar el pago. Intentalo de nuevo en unos segundos.'));
       }
     });
   }
 
+  private getApiErrorMessage(err: unknown, fallback: string): string {
+    const error = (err as { error?: unknown })?.error;
+    if ((err as { message?: unknown })?.message === 'Failed to fetch') {
+      return 'Hay problemas con la pasarela de pago. Intentalo de nuevo en unos segundos.';
+    }
+    if (typeof error === 'string') return error;
+    if (error && typeof error === 'object') {
+      const body = error as { error?: unknown; message?: unknown };
+      if (body.message === 'Failed to fetch' || body.error === 'Failed to fetch') {
+        return 'Hay problemas con la pasarela de pago. Intentalo de nuevo en unos segundos.';
+      }
+      if (typeof body.error === 'string' && body.error.trim()) return body.error;
+      if (typeof body.message === 'string' && body.message.trim()) return body.message;
+    }
+    return fallback;
+  }
+
   paymentMethodLabel(): string {
-    return this.paymentMethod() === 'ONLINE' ? 'Pago online' : 'Pago en el local';
+    switch (this.paymentMethod()) {
+      case 'ONLINE': return 'Pago con tarjeta';
+      case 'BIZUM': return 'Bizum';
+      case 'ONSITE': return 'Pago en el local';
+    }
   }
 
   closeSuccess(): void {
     this.showSuccess.set(false);
     this.selectedSlots.set([]);
+  }
+
+  closeErrorModal(): void {
+    this.bookingError.set('');
   }
 
   ngAfterViewInit() {

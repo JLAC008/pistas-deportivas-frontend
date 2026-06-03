@@ -4,7 +4,7 @@ services:
       context: ..
       dockerfile: docker/dockerfile
       args:
-        - API_URL=${API_URL:-http://app:8080/api}
+        - API_URL=${API_URL:-https://api.pistasvalleperdido.es/api}
     container_name: pistas-frontend
     ports:
       - "8081:8081"

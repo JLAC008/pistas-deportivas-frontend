@@ -965,7 +965,12 @@ class AdminComponent implements OnInit, AfterViewInit {
   }
 
   getPaymentMethodLabel(method: string): string {
-    return method === 'ONLINE' ? 'Online' : 'Local';
+    switch (method) {
+      case 'ONLINE': return 'Tarjeta';
+      case 'BIZUM': return 'Bizum';
+      case 'ONSITE': return 'Local';
+      default: return method;
+    }
   }
 
   getPaymentStatusLabel(status: string): string {
