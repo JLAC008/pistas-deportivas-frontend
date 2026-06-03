@@ -485,6 +485,7 @@
   white-space: nowrap;
 }
 
+
 /* ── Onsite notice ── */
 .onsite-notice {
   display: flex;
@@ -571,6 +572,17 @@
   margin: 0 auto 1rem;
   font-size: 1.75rem;
 }
+
+.success-modal.error-modal h2 { color: var(--danger); }
+
+.error-modal p {
+  color: var(--gray-600);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  margin: 0.5rem 0 1.5rem;
+}
+
+.error-icon { background: var(--danger); }
 
 .success-modal h2 { font-family: 'Fraunces', serif; margin-bottom: 0.5rem; color: var(--forest); }
 .email-confirmation-note { margin: 1rem 0; color: var(--muted); font-size: 0.875rem; }
@@ -1111,3 +1123,4 @@
   .onsite-notice { padding: 0.9rem 1rem; }
 
 }
+

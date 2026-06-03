@@ -226,8 +226,19 @@
                         <path d="M4 11h16" />
                       </svg>
                       <span>
-                        <strong>Pagar online</strong>
+                        <strong>Pagar con tarjeta</strong>
                         <small>Pago con tarjeta via Redsys</small>
+                      </span>
+                    </div>
+                    <div class="payment-option" [class.selected]="paymentMethod() === 'BIZUM'" (click)="paymentMethod.set('BIZUM')">
+                      <svg class="booking-icon booking-icon-label" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M7 7h10a3 3 0 0 1 0 6H7z" />
+                        <path d="M7 13h11a3 3 0 0 1 0 6H7z" />
+                        <path d="M7 4v16" />
+                      </svg>
+                      <span>
+                        <strong>Pagar con Bizum</strong>
+                        <small>Pago inmediato con tu movil</small>
                       </span>
                     </div>
                     <div class="payment-option" [class.selected]="paymentMethod() === 'ONSITE'" (click)="paymentMethod.set('ONSITE')">
@@ -245,7 +256,7 @@
               </aside>
             </div>
 
-            @if (paymentMethod() === 'ONLINE') {
+            @if (paymentMethod() === 'ONLINE' || paymentMethod() === 'BIZUM') {
               <div class="booking-customer-row">
                 <div class="guest-booking">
                   <div class="form-group">
@@ -293,9 +304,11 @@
 
                 <button
                   class="btn btn-primary btn-lg"
-                  [disabled]="!canBook() || isBooking()"
+                  [disabled]="!canBook() || isBooking() || redirecting()"
                   (click)="makeReservation()">
-                  @if (isBooking()) {
+                  @if (redirecting()) {
+                    Redirigiendo al pago...
+                  } @else if (isBooking()) {
                     Reservando...
                   } @else {
                     Confirmar Reserva{{ selectedSlots().length > 1 ? 's' : '' }}
@@ -361,11 +374,18 @@
             <p><strong>Email:</strong> {{ customerEmail() || 'Presencial' }}</p>
             <p><strong>Pago:</strong> {{ paymentMethodLabel() }}</p>
           </div>
-          @if (paymentMethod() === 'ONLINE') {
-            <p class="email-confirmation-note">Redirigiendo a la pasarela de pago...</p>
-            <button class="btn btn-primary" (click)="redirectToPayment()">Ir a pagar ahora</button>
-          }
           <button class="btn btn-outline" routerLink="/" (click)="closeSuccess()">Volver a pistas</button>
+        </div>
+      </div>
+    }
+
+    @if (bookingError()) {
+      <div class="success-overlay" (click)="closeErrorModal()">
+        <div class="success-modal error-modal" (click)="$event.stopPropagation()">
+          <div class="success-icon error-icon">&#10007;</div>
+          <h2>No se pudo completar</h2>
+          <p>{{ bookingError() }}</p>
+          <button class="btn btn-outline" type="button" (click)="closeErrorModal()">Entendido</button>
         </div>
       </div>
     }

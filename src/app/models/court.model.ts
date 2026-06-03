@@ -1,7 +1,7 @@
 export type CourtType = 'TENIS' | 'FUTBOL' | 'PADEL' | 'BALONCESTO' | 'VOLEIBOL' | 'FRONTON';
-export type PaymentMethod = 'ONLINE' | 'ONSITE';
+export type PaymentMethod = 'ONLINE' | 'BIZUM' | 'ONSITE';
 export type PaymentStatus = 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED';
-export type ReservationStatus = 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
+export type ReservationStatus = 'PENDING_PAYMENT' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED';
 
 export interface Court {
   id: string;
@@ -32,6 +32,7 @@ export interface Reservation {
   totalPrice: number;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
+  bookingGroup: string | null;
   status: ReservationStatus;
   createdAt: string;
 }
