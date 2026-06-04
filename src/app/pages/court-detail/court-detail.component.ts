@@ -377,7 +377,7 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
         this.isBooking.set(false);
         const msg = this.getApiErrorMessage(err, '');
         if (msg.includes('already reserved') || msg.includes('ya ha sido reservado')) {
-          this.bookingError.set('Este hueco ya ha sido reservado por otro usuario.');
+          this.bookingError.set('Este hueco ya ha sido reservado por otro usuario. Se actualizara la disponibilidad al cerrar.');
           this.loadAvailability();
         } else {
           this.bookingError.set(msg || 'No se pudo crear la reserva. Revisa los datos e intentalo de nuevo.');
