@@ -331,7 +331,7 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
         if (!stillAvailable) {
           this.isBooking.set(false);
           this.availableSlots.set(fresh.slots);
-          this.bookingError.set('Este hueco acaba de ser reservado por otro usuario. Refresca la pagina para ver la disponibilidad actualizada.');
+          this.bookingError.set('Este hueco ya ha sido reservado por otro usuario. Se actualizara la disponibilidad al cerrar.');
           return;
         }
 
