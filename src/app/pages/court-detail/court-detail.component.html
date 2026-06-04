@@ -369,6 +369,17 @@
         </div>
       </div>
     }
+
+    @if (bookingError()) {
+      <div class="success-overlay" (click)="closeErrorModal()">
+        <div class="success-modal" (click)="$event.stopPropagation()">
+          <div class="error-icon">&#10007;</div>
+          <h2>No se pudo completar la reserva</h2>
+          <p>{{ bookingError() }}</p>
+          <button class="btn btn-primary" (click)="closeErrorModal()">Entendido</button>
+        </div>
+      </div>
+    }
   </section>
 } @else {
   <div class="not-found">
