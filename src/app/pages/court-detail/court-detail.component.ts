@@ -451,7 +451,7 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
 
   closeErrorModal(): void {
     this.bookingError.set('');
-    this.loadAvailability();
+    window.location.reload();
   }
 
   ngAfterViewInit() {
