@@ -1684,9 +1684,11 @@
 .form-error-new {
   padding: 0.5rem 0.75rem;
   background: #fef2f2;
-  color: #dc2626;
-  border-radius: 6px;
+  color: #b91c1c;
+  border-radius: var(--radius-sm);
   font-size: 0.8rem;
+  font-weight: 500;
+  border-left: 2.5px solid #dc2626;
   margin: 0.75rem 0;
 }
 
@@ -2472,6 +2474,11 @@
   font-size: 0.82rem;
 }
 
+.mobile-form-group input.input-error {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 3px rgba(239,68,68,0.1) !important;
+}
+
 .mobile-form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -2479,11 +2486,13 @@
 }
 
 .mobile-form-error {
-  color: #dc2626;
+  color: #b91c1c;
   font-size: 0.8rem;
+  font-weight: 500;
   background: #fef2f2;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   padding: 0.5rem 0.75rem;
+  border-left: 2.5px solid #dc2626;
   margin: 0 0 1rem;
 }
 

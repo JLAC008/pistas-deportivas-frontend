@@ -20,10 +20,15 @@
 .auth-form { margin-bottom: 1.5rem; }
 
 .error-message {
-  background: #fef2f2; color: var(--danger);
-  padding: 0.75rem 1rem; border-radius: var(--radius);
-  margin-bottom: 1rem; font-size: 0.875rem;
+  background: #fef2f2;
+  color: #b91c1c;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
   border: 1px solid #fee2e2;
+  border-left: 3px solid var(--danger);
 }
 
 .auth-footer { border-top: 1px solid rgba(26,58,42,0.1); padding-top: 1.5rem; }

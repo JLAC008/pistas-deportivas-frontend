@@ -249,22 +249,35 @@
                           placeholder="Nombre Apellido">
                       </div>
                       <div class="form-group-new">
-                        <label>Email</label>
+                        <label>
+                          Email
+                          @if (adminFormData.customerEmail.trim() && !isAdminEmailValid()) {
+                            <span class="form-error-inline">Email inválido</span>
+                          }
+                        </label>
                         <input
                           type="email"
                           class="input-new"
+                          [class.input-error]="adminFormData.customerEmail.trim() && !isAdminEmailValid()"
                           [(ngModel)]="adminFormData.customerEmail"
                           name="customerEmail"
                           required
                           placeholder="email@ejemplo.com">
                       </div>
                       <div class="form-group-new">
-                        <label>Telefono</label>
+                        <label>
+                          Teléfono
+                          @if (adminFormData.customerPhone.trim() && !isAdminPhoneValid()) {
+                            <span class="form-error-inline">9 dígitos requeridos</span>
+                          }
+                        </label>
                         <input
                           type="tel"
                           class="input-new"
+                          [class.input-error]="adminFormData.customerPhone.trim() && !isAdminPhoneValid()"
                           [(ngModel)]="adminFormData.customerPhone"
                           name="customerPhone"
+                          required
                           placeholder="+34 600 000 000">
                       </div>
                       @if (adminBookingError()) {
@@ -1023,22 +1036,37 @@
                   <input
                     type="text"
                     [(ngModel)]="mobileReservationForm.customerName"
+                    required
                     placeholder="Nombre Apellido">
                 </div>
 
                 <div class="mobile-form-row">
                   <div class="mobile-form-group">
-                    <label>Email</label>
+                    <label>
+                      Email
+                      @if (mobileReservationForm.customerEmail.trim() && !isMobileEmailValid()) {
+                        <span class="form-error-inline">Email inválido</span>
+                      }
+                    </label>
                     <input
                       type="email"
+                      [class.input-error]="mobileReservationForm.customerEmail.trim() && !isMobileEmailValid()"
                       [(ngModel)]="mobileReservationForm.customerEmail"
+                      required
                       placeholder="email@ejemplo.com">
                   </div>
                   <div class="mobile-form-group">
-                    <label>Telefono</label>
+                    <label>
+                      Teléfono
+                      @if (mobileReservationForm.customerPhone.trim() && !isMobilePhoneValid()) {
+                        <span class="form-error-inline">9 dígitos requeridos</span>
+                      }
+                    </label>
                     <input
                       type="tel"
+                      [class.input-error]="mobileReservationForm.customerPhone.trim() && !isMobilePhoneValid()"
                       [(ngModel)]="mobileReservationForm.customerPhone"
+                      required
                       placeholder="+34 600 000 000">
                   </div>
                 </div>

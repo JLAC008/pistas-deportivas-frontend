@@ -271,34 +271,40 @@
                       required>
                   </div>
                   <div class="form-group">
-                    <label for="guest-phone">Telefono de contacto</label>
+                    <label for="guest-phone">
+                      Teléfono
+                      @if (phoneTouched() && customerPhone().trim() && !isValidPhone()) {
+                        <span class="form-error-inline">9 dígitos requeridos</span>
+                      }
+                    </label>
                     <input
                       type="tel"
                       inputmode="numeric"
                       id="guest-phone"
                       class="input"
+                      [class.input-error]="phoneTouched() && customerPhone().trim() && !isValidPhone()"
                       [value]="customerPhone()"
                       (input)="onPhoneInput($event)"
                       (blur)="phoneTouched.set(true)"
-                      placeholder="Tu telefono"
+                      placeholder="Tu teléfono"
                       required>
-                    @if (phoneTouched() && customerPhone().trim() && !isValidPhone()) {
-                      <p class="form-error">Introduce un telefono valido (9 digitos)</p>
-                    }
                   </div>
                   <div class="form-group">
-                    <label for="guest-email">Email para la reserva</label>
+                    <label for="guest-email">
+                      Email para la reserva
+                      @if (customerEmail().trim() && !isValidEmail()) {
+                        <span class="form-error-inline">Email inválido</span>
+                      }
+                    </label>
                     <input
                       type="email"
                       id="guest-email"
                       class="input"
+                      [class.input-error]="customerEmail().trim() && !isValidEmail()"
                       [value]="customerEmail()"
                       (input)="customerEmail.set($any($event.target).value)"
                       placeholder="tu@email.com"
                       required>
-                    @if (customerEmail().trim() && !isValidEmail()) {
-                      <p class="form-error">Introduce un email valido</p>
-                    }
                   </div>
                 </div>
 

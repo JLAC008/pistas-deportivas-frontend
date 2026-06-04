@@ -1023,12 +1023,41 @@ class AdminComponent implements OnInit, AfterViewInit {
     return `${hours}h`;
   }
 
+  isAdminEmailValid(): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.adminFormData.customerEmail.trim());
+  }
+
+  isAdminPhoneValid(): boolean {
+    const phone = this.adminFormData.customerPhone.trim();
+    return phone === '' || /^\d{9}$/.test(phone);
+  }
+
+  isMobileEmailValid(): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.mobileReservationForm.customerEmail.trim());
+  }
+
+  isMobilePhoneValid(): boolean {
+    const phone = this.mobileReservationForm.customerPhone.trim();
+    return phone === '' || /^\d{9}$/.test(phone);
+  }
+
   createMobileReservation(): void {
     const courtId = this.mobileReservationCourt();
     const hour = Number(this.mobileReservationHour());
     const { customerName, customerEmail, customerPhone } = this.mobileReservationForm;
 
-    if (!courtId || !hour || !customerName.trim() || !customerEmail.trim()) return;
+    if (!courtId || !hour || !customerName.trim() || !customerEmail.trim()) {
+      this.adminBookingError.set('Faltan datos obligatorios.');
+      return;
+    }
+    if (!this.isMobileEmailValid()) {
+      this.adminBookingError.set('El email no es válido.');
+      return;
+    }
+    if (!this.isMobilePhoneValid()) {
+      this.adminBookingError.set('El teléfono debe tener 9 dígitos.');
+      return;
+    }
 
     const court = this.calendarCourts().find(c => c.id === courtId);
     if (!court) return;

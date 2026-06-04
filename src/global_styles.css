@@ -225,6 +225,40 @@ app-root { display: flex; flex-direction: column; min-height: 100vh; }
   font-weight: 600;
 }
 
+/* Inline form error chip + input error state (global) */
+.form-error-inline {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #b91c1c;
+  background: #fef2f2;
+  border-radius: 3px;
+  border-left: 2px solid var(--danger);
+  text-transform: none;
+  letter-spacing: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.input-error {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 3px rgba(239,68,68,0.1) !important;
+}
+
+.form-group-new label,
+.mobile-form-group label {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
 /* ════════════════════════════════════
    STATUS BADGES
    ════════════════════════════════════ */
