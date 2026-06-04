@@ -39,6 +39,17 @@ export interface PaymentInitiateResponse {
   dsSignature: string;
 }
 
+export interface PaymentConfirmRequest {
+  dsMerchantParameters: string;
+  dsSignature: string;
+}
+
+export interface PaymentConfirmResponse {
+  success: boolean;
+  order: string;
+  transactionId: string;
+}
+
 export interface PaymentResponse {
   id: string;
   reservationId: string;

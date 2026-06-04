@@ -32,6 +32,7 @@ export interface Reservation {
   totalPrice: number;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
+  bookingGroup: string | null;
   status: ReservationStatus;
   createdAt: string;
 }

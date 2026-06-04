@@ -228,7 +228,7 @@ class AdminComponent implements OnInit, AfterViewInit {
       const matchesStatus =
         statusFilter === 'all' ||
         reservation.status === statusFilter ||
-        (statusFilter === 'pending-payment' && reservation.paymentStatus === 'PENDING');
+        (statusFilter === 'pending-payment' && (reservation.status === 'PENDING_PAYMENT' || reservation.paymentStatus === 'PENDING'));
 
       return matchesCourt && matchesDate && matchesStatus && reservation.status !== 'CANCELLED';
     });
@@ -245,7 +245,9 @@ class AdminComponent implements OnInit, AfterViewInit {
   });
 
   pendingSchedulePayments = computed(() =>
-    this.scheduledReservations().filter(reservation => reservation.paymentStatus === 'PENDING').length
+    this.scheduledReservations().filter(reservation =>
+      reservation.status === 'PENDING_PAYMENT' || reservation.paymentStatus === 'PENDING'
+    ).length
   );
 
   selectedTimeRange = computed(() => {
@@ -954,6 +956,7 @@ class AdminComponent implements OnInit, AfterViewInit {
 
   getStatusLabel(status: string): string {
     switch (status) {
+      case 'PENDING_PAYMENT': return 'Pendiente pago';
       case 'CONFIRMED': return 'Confirmada';
       case 'CANCELLED': return 'Cancelada';
       case 'COMPLETED': return 'Completada';
@@ -962,7 +965,12 @@ class AdminComponent implements OnInit, AfterViewInit {
   }
 
   getPaymentMethodLabel(method: string): string {
-    return method === 'ONLINE' ? 'Online' : 'Local';
+    switch (method) {
+      case 'ONLINE': return 'Tarjeta';
+      case 'BIZUM': return 'Bizum';
+      case 'ONSITE': return 'Local';
+      default: return method;
+    }
   }
 
   getPaymentStatusLabel(status: string): string {

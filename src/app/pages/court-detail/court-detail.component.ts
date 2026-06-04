@@ -315,6 +315,7 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
     this.bookingError.set('');
     this.isBooking.set(true);
     const isOnsite = this.paymentMethod() === 'ONSITE';
+    const bookingGroup = crypto.randomUUID();
 
     this.courtService.getAvailability(court.id, this.selectedDate()).subscribe({
       next: (fresh) => {
@@ -376,7 +377,7 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
         this.isBooking.set(false);
         const msg = this.getApiErrorMessage(err, '');
         if (msg.includes('already reserved') || msg.includes('ya ha sido reservado')) {
-          this.bookingError.set('Este hueco ya ha sido reservado por otro usuario. Refresca la pagina para ver la disponibilidad actualizada.');
+          this.bookingError.set('Este hueco ya ha sido reservado por otro usuario.');
           this.loadAvailability();
         } else {
           this.bookingError.set(msg || 'No se pudo crear la reserva. Revisa los datos e intentalo de nuevo.');
@@ -450,6 +451,7 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
 
   closeErrorModal(): void {
     this.bookingError.set('');
+    this.loadAvailability();
   }
 
   ngAfterViewInit() {
