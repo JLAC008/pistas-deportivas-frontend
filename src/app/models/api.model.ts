@@ -20,6 +20,7 @@ export interface ReservationRequest {
   startTime: number;
   endTime?: number;
   paymentMethod: string;
+  bookingGroup?: string;
 }
 
 export interface AvailabilityResponse {
