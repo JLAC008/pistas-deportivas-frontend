@@ -1,0 +1,43 @@
+.auth-page {
+  min-height: calc(100vh - 200px);
+  display: flex; align-items: center; justify-content: center; padding: 2rem;
+}
+
+.auth-card {
+  background: var(--white);
+  padding: 2.5rem;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid rgba(26,58,42,0.08);
+}
+
+.auth-header { text-align: center; margin-bottom: 2rem; }
+.auth-header h1 { font-family: 'Fraunces', serif; font-size: 1.75rem; margin-bottom: 0.5rem; color: var(--forest); }
+.auth-header p { color: var(--muted); }
+
+.auth-form { margin-bottom: 1.5rem; }
+
+.error-message {
+  background: #fef2f2;
+  color: #b91c1c;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid #fee2e2;
+  border-left: 3px solid var(--danger);
+}
+
+.auth-footer { border-top: 1px solid rgba(26,58,42,0.1); padding-top: 1.5rem; }
+
+.demo-credentials {
+  background: var(--surface-muted);
+  padding: 1rem; border-radius: var(--radius);
+  border: 1px solid rgba(26,58,42,0.08);
+}
+
+.demo-title { font-weight: 600; margin-bottom: 0.75rem; color: var(--gray-700); font-size: 0.875rem; }
+.demo-user p { font-size: 0.85rem; color: var(--muted); margin-bottom: 0.25rem; }

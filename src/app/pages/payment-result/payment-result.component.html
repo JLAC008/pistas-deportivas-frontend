@@ -1,0 +1,30 @@
+<section class="payment-result-page">
+  @if (loading()) {
+    <div class="payment-loading">
+      <div class="result-icon loading-icon">&#8987;</div>
+      <h1>Verificando pago...</h1>
+      <p>Estamos confirmando el resultado del pago.</p>
+    </div>
+  } @else if (error()) {
+    <div class="payment-failure">
+      <div class="result-icon failure-icon">&#10007;</div>
+      <h1>Error de verificacion</h1>
+      <p>No se pudo verificar el pago. Contacta con nosotros si tienes dudas.</p>
+      <a routerLink="/" class="btn btn-primary">Volver a pistas</a>
+    </div>
+  } @else if (success()) {
+    <div class="payment-success">
+      <div class="result-icon success-icon">&#10003;</div>
+      <h1>Pago realizado con exito</h1>
+      <p>Tu reserva ha sido confirmada y el pago procesado correctamente.</p>
+      <a routerLink="/" class="btn btn-primary">Volver a pistas</a>
+    </div>
+  } @else {
+    <div class="payment-failure">
+      <div class="result-icon failure-icon">&#10007;</div>
+      <h1>Pago no completado</h1>
+      <p>El pago no pudo procesarse. Puedes intentarlo de nuevo.</p>
+      <a routerLink="/" class="btn btn-primary">Volver a pistas</a>
+    </div>
+  }
+</section>

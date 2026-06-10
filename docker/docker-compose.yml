@@ -1,0 +1,17 @@
+services:
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/dockerfile
+      args:
+        - API_URL=${API_URL:-http://app:8080/api}
+    container_name: pistas-frontend
+    ports:
+      - "8081:8081"
+    restart: unless-stopped
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true

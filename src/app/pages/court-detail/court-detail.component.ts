@@ -1,371 +1,564 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, AfterViewInit, ElementRef, ViewChild, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { MockDataService } from '../../services/mock-data.service';
-import { EmailService } from '../../services/email.service';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { forkJoin } from 'rxjs';
+import { CourtService } from '../../services/court.service';
+import { ReservationService } from '../../services/reservation.service';
+import { PaymentService } from '../../services/payment.service';
+import { Court, PaymentMethod, TimeSlot } from '../../models/court.model';
+import { DatePickerComponent } from '../../components/date-picker/date-picker.component';
+
+interface SelectedBlock {
+  startTime: number;
+  endTime: number;
+  count: number;
+}
+
+interface CalendarDay {
+  date: Date;
+  day: number;
+  isToday: boolean;
+  isSelected: boolean;
+  dateStr: string;
+}
 
 @Component({
   selector: 'app-court-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink],
-  template: `
-    @if (court(); as c) {
-      <section class="court-detail">
-        <div class="court-header">
-          <a routerLink="/courts" class="back-link">&larr; Volver a pistas</a>
-          <div class="court-image-large">
-            <img [src]="c.image" [alt]="c.name">
-            <span class="court-type-badge">{{ c.type }}</span>
-          </div>
-          <div class="court-title-section">
-            <h1>{{ c.name }}</h1>
-            <p class="court-description-full">{{ c.description }}</p>
-            <div class="court-quick-info">
-              <span class="info-item">
-                <strong>Precio:</strong> {{ c.pricePerHour }}&#8364;/hora
-              </span>
-              <span class="info-item">
-                <strong>Jugadores:</strong> hasta {{ c.maxPlayers }}
-              </span>
-              <span class="info-item" [class.inactive-status]="!c.isActive">
-                <strong>Estado:</strong> {{ c.isActive ? 'Disponible' : 'Inactiva' }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div class="court-amenities-section">
-          <h2>Instalaciones</h2>
-          <div class="amenities-list">
-            @for (amenity of c.amenities; track amenity) {
-              <span class="amenity-badge">{{ amenity }}</span>
-            }
-          </div>
-        </div>
-
-        @if (c.isActive) {
-          <div class="booking-section">
-            <h2>Reservar</h2>
-
-            <div class="booking-form">
-              <div class="form-group">
-                <label>Selecciona una fecha:</label>
-                <input
-                  type="date"
-                  class="input"
-                  [min]="minDate"
-                  [value]="selectedDate()"
-                  (input)="selectedDate.set($any($event.target).value)">
-              </div>
-
-              @if (availableSlots().length > 0) {
-                <div class="form-group">
-                  <label>Horarios disponibles:</label>
-                  <div class="time-slots">
-                    @for (slot of availableSlots(); track slot.hour) {
-                      <button
-                        class="time-slot"
-                        [class.selected]="isSlotSelected(slot.hour)"
-                        [class.available]="slot.available"
-                        [disabled]="!slot.available"
-                        (click)="toggleSlot(slot.hour)">
-                        {{ slot.hour }}:00 - {{ slot.hour + 1 }}:00
-                      </button>
-                    }
-                  </div>
-                  @if (selectedSlots().length > 0) {
-                    <p class="selection-info">
-                     Seleccionado: {{ formatTime(selectedSlots()[0]) }} - {{ formatTime(selectedSlots()[selectedSlots().length - 1] + 1) }}
-                      ({{ selectedSlots().length }} hora{{ selectedSlots().length > 1 ? 's' : '' }})
-                    </p>
-                  }
-                </div>
-
-                <div class="booking-summary">
-                  <div class="summary-row">
-                    <span>Horas:</span>
-                    <span>{{ selectedSlots().length }}</span>
-                  </div>
-                  <div class="summary-row total">
-                    <span>Total:</span>
-                    <span>{{ totalPrice() }}&#8364;</span>
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label>Forma de pago:</label>
-                  <div class="payment-options">
-                    <label class="payment-option" [class.selected]="paymentMethod() === 'onsite'">
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="onsite"
-                        [checked]="paymentMethod() === 'onsite'"
-                        (change)="paymentMethod.set('onsite')">
-                      <span>
-                        <strong>Pagar en el local</strong>
-                        <small>Reserva ahora y paga al llegar</small>
-                      </span>
-                    </label>
-                    <label class="payment-option" [class.selected]="paymentMethod() === 'online'">
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="online"
-                        [checked]="paymentMethod() === 'online'"
-                        (change)="paymentMethod.set('online')">
-                      <span>
-                        <strong>Pagar online</strong>
-                        <small>Pago simulado en esta demo</small>
-                      </span>
-                    </label>
-                  </div>
-                </div>
-
-                @if (userService.$currentUser(); as user) {
-                  <div class="booking-contact">
-                    <p class="contact-label">Reserva como</p>
-                    <p class="contact-value">{{ user.name }} · {{ user.email }}</p>
-                  </div>
-                  <button
-                    class="btn btn-primary btn-lg btn-block"
-                    [disabled]="!canBook() || isBooking()"
-                    (click)="makeReservation()">
-                    @if (isBooking()) {
-                      Reservando...
-                    } @else {
-                      Confirmar Reserva
-                    }
-                  </button>
-                } @else {
-                  <div class="guest-booking">
-                    <div class="form-group">
-                      <label for="guest-email">Email para la reserva:</label>
-                      <input
-                        type="email"
-                        id="guest-email"
-                        class="input"
-                        [value]="guestEmail()"
-                        (input)="guestEmail.set($any($event.target).value)"
-                        placeholder="tu@email.com"
-                        required>
-                      @if (guestEmail().trim() && !isValidGuestEmail()) {
-                        <p class="form-error">Introduce un email valido</p>
-                      }
-                    </div>
-                    <button
-                      class="btn btn-primary btn-lg btn-block"
-                      [disabled]="!canBook() || isBooking()"
-                      (click)="makeReservation()">
-                      @if (isBooking()) {
-                        Reservando...
-                      } @else {
-                        Confirmar Reserva
-                      }
-                    </button>
-                    <p class="guest-note">Tambien puedes <a routerLink="/login">iniciar sesion</a> para guardar la reserva en tu cuenta.</p>
-                  </div>
-                }
-              } @else {
-                <p class="no-slots">Selecciona una fecha para ver los horarios disponibles</p>
-              }
-            </div>
-          </div>
-        }
-
-        @if (showSuccess()) {
-          <div class="success-overlay" (click)="showSuccess.set(false)">
-            <div class="success-modal" (click)="$event.stopPropagation()">
-              <div class="success-icon">&#10003;</div>
-              <h2>Reserva Confirmada</h2>
-              <p>Tu reserva ha sido creada exitosamente</p>
-              <div class="success-details">
-                <p><strong>Pista:</strong> {{ c.name }}</p>
-                <p><strong>Fecha:</strong> {{ selectedDate() | date:'fullDate' }}</p>
-                <p><strong>Hora:</strong> {{ formatTime(selectedSlots()[0]) }} - {{ formatTime(selectedSlots()[selectedSlots().length - 1] + 1) }}</p>
-                <p><strong>Email:</strong> {{ reservationEmail() }}</p>
-                <p><strong>Pago:</strong> {{ paymentMethodLabel() }} - {{ paymentStatusLabel() }}</p>
-              </div>
-              <p class="email-confirmation-note">{{ emailStatusMessage() }}</p>
-              @if (userService.$currentUser()) {
-                <button class="btn btn-primary" (click)="goToReservations()">Ver mis reservas</button>
-              } @else {
-                <button class="btn btn-primary" routerLink="/courts" (click)="closeSuccess()">Volver a pistas</button>
-              }
-              <button class="btn btn-outline" (click)="closeSuccess()">Cerrar</button>
-            </div>
-          </div>
-        }
-      </section>
-    } @else {
-      <div class="not-found">
-        <h2>Pista no encontrada</h2>
-        <a routerLink="/courts" class="btn btn-primary">Ver todas las pistas</a>
-      </div>
-    }
-  `
+  imports: [CommonModule, RouterLink, DatePickerComponent],
+  templateUrl: './court-detail.component.html',
+  styleUrls: ['./court-detail.component.css']
 })
-export class CourtDetailComponent {
-  private route = inject(ActivatedRoute);
-  private router = inject(Router);
-  private emailService = inject(EmailService);
-  userService = inject(MockDataService);
+export class CourtDetailComponent implements OnInit, AfterViewInit {
+  private readonly route = inject(ActivatedRoute);
+  private readonly courtService = inject(CourtService);
+  private readonly reservationService = inject(ReservationService);
+  private readonly paymentService = inject(PaymentService);
 
-  court = computed(() => {
-    const id = this.route.snapshot.paramMap.get('id');
-    return id ? this.userService.getCourtById(id) : undefined;
-  });
-
+  court = signal<Court | null>(null);
   selectedDate = signal<string>(this.getTodayString());
   selectedSlots = signal<number[]>([]);
   isBooking = signal(false);
   showSuccess = signal(false);
-  guestEmail = signal('');
-  reservationEmail = signal('');
-  emailStatusMessage = signal('');
-  paymentMethod = signal<'online' | 'onsite'>('onsite');
-  confirmedPaymentMethod = signal<'online' | 'onsite'>('onsite');
-  confirmedPaymentStatus = signal<'paid' | 'pending'>('pending');
+  customerName = signal('');
+  customerPhone = signal('');
+  customerEmail = signal('');
+  phoneTouched = signal(false);
+  paymentMethod = signal<PaymentMethod>('ONLINE');
+  availableSlots = signal<TimeSlot[]>([]);
+  createdReservations = signal<{id: string; startTime: number; endTime: number}[]>([]);
+  redirecting = signal(false);
+  bookingError = signal('');
+  loadingCourt = signal(true);
+  dropdownOpen = signal(false);
 
   minDate = this.getTodayString();
 
-  private static getTodayString(): string {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
+  isMobile = signal(window.innerWidth <= 768);
+
+  @HostListener('window:resize')
+  onResize() {
+    this.isMobile.set(window.innerWidth <= 768);
   }
+
+  @ViewChild('mobileCalendarStrip') mobileCalendarStrip!: ElementRef;
+
+  mobileCalendarDays = computed<CalendarDay[]>(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = this.getTodayString();
+    const selectedDate = this.selectedDate();
+    const maxDate = new Date(today);
+    maxDate.setMonth(maxDate.getMonth() + 3);
+    const days: CalendarDay[] = [];
+    const current = new Date(today);
+    while (current <= maxDate) {
+      const dateStr = this.localDateStr(current);
+      days.push({
+        date: new Date(current),
+        day: current.getDate(),
+        isToday: dateStr === todayStr,
+        isSelected: dateStr === selectedDate,
+        dateStr
+      });
+      current.setDate(current.getDate() + 1);
+    }
+    return days;
+  });
 
   getTodayString(): string {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
+    return this.localDateStr(new Date());
   }
 
-  availableSlots = computed(() => {
-    const court = this.court();
-    const dateStr = this.selectedDate();
-    if (!court || !dateStr) return [];
+  private localDateStr(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
 
-    const date = new Date(dateStr);
-    return this.userService.getAvailableSlots(court.id, date);
+  durationHours = computed(() => {
+    const court = this.court();
+    if (!court) return 0;
+    return court.durationMinutes / 60;
+  });
+
+  selectedBlocks = computed<SelectedBlock[]>(() => {
+    const slots = this.selectedSlots();
+    const court = this.court();
+    if (!court || slots.length === 0) return [];
+
+    const duration = court.durationMinutes / 60;
+    const blocks: SelectedBlock[] = [];
+    let blockStart = slots[0];
+    let blockEnd = blockStart + duration;
+    let count = 1;
+
+    for (let i = 1; i < slots.length; i++) {
+      if (slots[i] === blockEnd) {
+        blockEnd = slots[i] + duration;
+        count++;
+      } else {
+        blocks.push({ startTime: blockStart, endTime: blockEnd, count });
+        blockStart = slots[i];
+        blockEnd = blockStart + duration;
+        count = 1;
+      }
+    }
+    blocks.push({ startTime: blockStart, endTime: blockEnd, count });
+
+    return blocks;
+  });
+
+  removeBlock(block: SelectedBlock): void {
+    const duration = this.durationHours();
+    this.selectedSlots.update(slots =>
+      slots.filter(t => t < block.startTime || t >= block.endTime)
+    );
+  }
+
+  isPastSlot(time: number): boolean {
+    const today = this.getTodayString();
+    if (this.selectedDate() !== today) return false;
+    const now = new Date();
+    const currentHour = now.getHours() + now.getMinutes() / 60;
+    return time <= currentHour;
+  }
+
+  availableStartSlots = computed(() => {
+    const slots = this.availableSlots();
+    const court = this.court();
+    if (!court || slots.length === 0) return [];
+
+    const duration = court.durationMinutes / 60;
+
+    return slots.filter(slot => {
+      const start = slot.time;
+      const end = start + duration;
+
+      if (end > 24.0) return false;
+
+      for (let t = start; t < end; t += 0.5) {
+        const slotAtTime = slots.find(s => s.time === t);
+        if (!slotAtTime || !slotAtTime.available) return false;
+      }
+
+      return true;
+    });
+  });
+
+  displaySlots = computed(() => {
+    const selected = this.selectedSlots();
+    const duration = this.durationHours();
+    return this.availableStartSlots().filter(slot => {
+      if (this.isPastSlot(slot.time)) return false;
+
+      for (const selTime of selected) {
+        if (slot.time < selTime + duration && slot.time + duration > selTime) {
+          return false;
+        }
+      }
+
+      return true;
+    });
   });
 
   totalPrice = computed(() => {
     const court = this.court();
     if (!court) return 0;
-    return court.pricePerHour * this.selectedSlots().length;
+    return court.price * this.selectedSlots().length;
   });
 
   canBook = computed(() => {
     if (this.selectedSlots().length === 0) return false;
-    return this.userService.$currentUser() ? true : this.isValidGuestEmail();
+    if (this.paymentMethod() === 'ONSITE') return true;
+    return this.isValidEmail() && this.isValidPhone() && this.customerName().trim().length > 0;
   });
 
-  isSlotSelected(hour: number): boolean {
-    return this.selectedSlots().includes(hour);
-  }
-
-  toggleSlot(hour: number): void {
-    const slots = this.selectedSlots();
-    const index = slots.indexOf(hour);
-
-    if (index > -1) {
-      this.selectedSlots.set(slots.filter(s => s !== hour));
-    } else {
-      const newSlots = [...slots, hour].sort((a, b) => a - b);
-      // Check if slots are consecutive
-      let consecutive = true;
-      for (let i = 1; i < newSlots.length; i++) {
-        if (newSlots[i] - newSlots[i-1] !== 1) {
-          consecutive = false;
-          break;
-        }
+  ngOnInit() {
+    const identifier = this.route.snapshot.paramMap.get('id');
+    if (identifier) {
+      this.loadingCourt.set(true);
+      if (this.isUuid(identifier)) {
+        this.courtService.getById(identifier).subscribe({
+          next: court => {
+            this.court.set(court);
+            this.loadingCourt.set(false);
+            this.loadAvailability();
+          },
+          error: () => this.loadingCourt.set(false)
+        });
+      } else {
+        this.courtService.getAll().subscribe({
+          next: courts => {
+            const court = courts.find(item => this.courtSlug(item.name) === identifier);
+            this.court.set(court || null);
+            this.loadingCourt.set(false);
+            if (court) this.loadAvailability();
+          },
+          error: () => this.loadingCourt.set(false)
+        });
       }
-      this.selectedSlots.set(consecutive ? newSlots : [hour]);
     }
   }
 
-  formatTime(hour: number): string {
-    return `${hour.toString().padStart(2, '0')}:00`;
+  onDateChange(date: string): void {
+    this.selectedDate.set(date);
+    this.selectedSlots.set([]);
+    this.loadAvailability();
   }
 
-  isValidGuestEmail(): boolean {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.guestEmail().trim());
+  onPhoneInput(event: Event): void {
+    const inputElement = event.target as HTMLInputElement;
+    const numericValue = inputElement.value.replace(/[^0-9]/g, '');
+    inputElement.value = numericValue;
+    this.customerPhone.set(numericValue);
   }
 
-  async makeReservation(): Promise<void> {
+  private loadAvailability(): void {
     const court = this.court();
-    const user = this.userService.$currentUser();
-    if (!court || !this.canBook()) return;
+    if (!court || !this.selectedDate()) return;
+    this.courtService.getAvailability(court.id, this.selectedDate()).subscribe({
+      next: res => this.availableSlots.set(res.slots)
+    });
+  }
 
-    const guestEmail = this.guestEmail().trim();
-    const reservationUser = user
-      ? {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          isGuest: false
-        }
-      : {
-          id: `guest:${guestEmail.toLowerCase()}`,
-          name: 'Invitado',
-          email: guestEmail,
-          isGuest: true
-        };
+  isSlotSelected(time: number): boolean {
+    return this.selectedSlots().includes(time);
+  }
 
+  selectSlot(time: number): void {
+    this.selectedSlots.update(slots => {
+      if (slots.includes(time)) {
+        return slots.filter(t => t !== time);
+      }
+      return [...slots, time].sort((a, b) => a - b);
+    });
+  }
+
+  formatTime(time: number): string {
+    const h = Math.floor(time);
+    const m = Math.round((time - h) * 60);
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+  }
+
+  selectedTimeRange(): string {
+    const blocks = this.selectedBlocks();
+    if (blocks.length === 0) return 'Selecciona hora';
+    if (blocks.length === 1) {
+      const b = blocks[0];
+      return `${this.formatTime(b.startTime)} - ${this.formatTime(b.endTime)}`;
+    }
+    return `${blocks.length} bloques seleccionados`;
+  }
+
+  selectedDateLabel(): string {
+    const date = new Date(this.selectedDate() + 'T12:00:00');
+    return new Intl.DateTimeFormat('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    }).format(date);
+  }
+
+  hasLighting(court: Court): boolean {
+    return court.amenities.some(amenity => amenity.toLowerCase().includes('ilumin'));
+  }
+
+  private isUuid(value: string): boolean {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  }
+
+  private courtSlug(name: string): string {
+    return name
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  isValidEmail(): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.customerEmail().trim());
+  }
+
+  isValidPhone(): boolean {
+    return /^\d{9}$/.test(this.customerPhone().trim());
+  }
+
+  makeReservation(): void {
+    const court = this.court();
+    const blocks = this.selectedBlocks();
+    if (!court || blocks.length === 0) return;
+
+    this.bookingError.set('');
     this.isBooking.set(true);
+    const isOnsite = this.paymentMethod() === 'ONSITE';
+    const bookingGroup = crypto.randomUUID();
 
-    // Simulate API/payment delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    const selectedPaymentMethod = this.paymentMethod();
-    const paymentStatus = selectedPaymentMethod === 'online' ? 'paid' : 'pending';
+    this.courtService.getAvailability(court.id, this.selectedDate()).subscribe({
+      next: (fresh) => {
+        const stillAvailable = blocks.every(block => {
+          const duration = court.durationMinutes / 60;
+          for (let t = block.startTime; t < block.endTime; t += 0.5) {
+            const slot = fresh.slots.find(s => s.time === t);
+            if (!slot || !slot.available) return false;
+          }
+          return true;
+        });
 
-    const reservation = this.userService.createReservation(
-      court.id,
-      new Date(this.selectedDate()),
-      this.selectedSlots()[0],
-      this.selectedSlots()[this.selectedSlots().length - 1] + 1,
-      reservationUser.id,
-      reservationUser.name,
-      reservationUser.email,
-      reservationUser.isGuest,
-      selectedPaymentMethod,
-      paymentStatus
+        if (!stillAvailable) {
+          this.isBooking.set(false);
+          this.availableSlots.set(fresh.slots);
+          this.bookingError.set('Este hueco ya ha sido reservado por otro usuario. Se actualizara la disponibilidad al cerrar.');
+          return;
+        }
+
+        this.proceedWithReservation(court, blocks, isOnsite);
+      },
+      error: () => {
+        this.isBooking.set(false);
+        this.bookingError.set('No se pudo verificar la disponibilidad. Intentalo de nuevo.');
+      }
+    });
+  }
+
+  private proceedWithReservation(court: Court, blocks: {startTime: number; endTime: number}[], isOnsite: boolean): void {
+    const bookingGroup = crypto.randomUUID();
+
+    const observables = blocks.map(block =>
+      this.reservationService.create({
+        courtId: court.id,
+        customerName: isOnsite ? 'Presencial' : this.customerName().trim(),
+        customerEmail: isOnsite ? 'presencial@valleperdidosport.com' : this.customerEmail().trim(),
+        customerPhone: isOnsite ? '' : this.customerPhone().trim(),
+        date: this.selectedDate(),
+        startTime: block.startTime,
+        endTime: block.endTime,
+        paymentMethod: this.paymentMethod(),
+        bookingGroup
+      })
     );
 
-    this.isBooking.set(false);
+    forkJoin(observables).subscribe({
+      next: (reservations) => {
+        this.createdReservations.set(
+          reservations.map(r => ({ id: r.id, startTime: r.startTime, endTime: r.endTime }))
+        );
+        this.isBooking.set(false);
+        if (isOnsite) {
+          this.showSuccess.set(true);
+        } else {
+          this.redirectToPayment();
+        }
+      },
+      error: (err) => {
+        this.isBooking.set(false);
+        const msg = this.getApiErrorMessage(err, '');
+        if (msg.includes('already reserved') || msg.includes('ya ha sido reservado')) {
+          this.bookingError.set('Este hueco ya ha sido reservado por otro usuario. Se actualizara la disponibilidad al cerrar.');
+          this.loadAvailability();
+        } else {
+          this.bookingError.set(msg || 'No se pudo crear la reserva. Revisa los datos e intentalo de nuevo.');
+        }
+      }
+    });
+  }
 
-    if (reservation) {
-      this.sendReservationEmails(reservation);
-      this.reservationEmail.set(reservation.userEmail);
-      this.confirmedPaymentMethod.set(reservation.paymentMethod);
-      this.confirmedPaymentStatus.set(reservation.paymentStatus);
-      this.showSuccess.set(true);
+  redirectToPayment(): void {
+    const reservations = this.createdReservations();
+    if (reservations.length === 0) return;
+    this.redirecting.set(true);
+    this.paymentService.initiate(reservations[0].id).subscribe({
+      next: (payment) => {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = payment.url;
+        form.style.display = 'none';
+
+        const addField = (name: string, value: string) => {
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = name;
+          input.value = value;
+          form.appendChild(input);
+        };
+
+        addField('Ds_SignatureVersion', payment.dsSignatureVersion);
+        addField('Ds_MerchantParameters', payment.dsMerchantParameters);
+        addField('Ds_Signature', payment.dsSignature);
+
+        document.body.appendChild(form);
+        form.submit();
+      },
+      error: (err) => {
+        this.redirecting.set(false);
+        this.bookingError.set(this.getApiErrorMessage(err, 'No se pudo iniciar el pago. Intentalo de nuevo en unos segundos.'));
+      }
+    });
+  }
+
+  private getApiErrorMessage(err: unknown, fallback: string): string {
+    const error = (err as { error?: unknown })?.error;
+    if ((err as { message?: unknown })?.message === 'Failed to fetch') {
+      return 'Hay problemas con la pasarela de pago. Intentalo de nuevo en unos segundos.';
     }
+    if (typeof error === 'string') return error;
+    if (error && typeof error === 'object') {
+      const body = error as { error?: unknown; message?: unknown };
+      if (body.message === 'Failed to fetch' || body.error === 'Failed to fetch') {
+        return 'Hay problemas con la pasarela de pago. Intentalo de nuevo en unos segundos.';
+      }
+      if (typeof body.error === 'string' && body.error.trim()) return body.error;
+      if (typeof body.message === 'string' && body.message.trim()) return body.message;
+    }
+    return fallback;
   }
 
   paymentMethodLabel(): string {
-    return this.confirmedPaymentMethod() === 'online' ? 'Pagado online' : 'Pago en el local';
-  }
-
-  paymentStatusLabel(): string {
-    return this.confirmedPaymentStatus() === 'paid' ? 'Pagado' : 'Pendiente';
-  }
-
-  private sendReservationEmails(reservation: NonNullable<ReturnType<MockDataService['createReservation']>>): void {
-    try {
-      this.emailService.sendReservationConfirmation(reservation);
-      this.emailStatusMessage.set(`Confirmacion preparada para ${reservation.userEmail}`);
-    } catch (error) {
-      console.error('No se pudo preparar el email simulado', error);
-      this.emailStatusMessage.set('Reserva creada. No se pudo preparar la confirmacion por email.');
+    switch (this.paymentMethod()) {
+      case 'ONLINE': return 'Pago con tarjeta';
+      case 'BIZUM': return 'Bizum';
+      case 'ONSITE': return 'Pago en el local';
     }
-  }
-
-  goToReservations(): void {
-    this.router.navigate(['/my-reservations']);
   }
 
   closeSuccess(): void {
     this.showSuccess.set(false);
     this.selectedSlots.set([]);
+  }
+
+  closeErrorModal(): void {
+    this.bookingError.set('');
+    window.location.reload();
+  }
+
+  ngAfterViewInit() {
+    setTimeout(() => this.scrollToToday(), 100);
+  }
+
+  scrollToToday() {
+    if (!this.mobileCalendarStrip) return;
+    const strip = this.mobileCalendarStrip.nativeElement;
+    const selectedEl = strip.querySelector('.selected');
+    if (selectedEl) {
+      selectedEl.scrollIntoView({ inline: 'center', block: 'nearest' });
+    }
+  }
+
+  isDayDisabled(dateStr: string): boolean {
+    const today = this.getTodayString();
+    const maxDate = new Date();
+    maxDate.setMonth(maxDate.getMonth() + 3);
+    const maxStr = maxDate.toISOString().split('T')[0];
+    return dateStr < today || dateStr > maxStr;
+  }
+
+  getDayShortName(date: Date): string {
+    const names = ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sa'];
+    return names[date.getDay()];
+  }
+
+  selectDay(dateStr: string): void {
+    if (this.isDayDisabled(dateStr)) return;
+    this.onDateChange(dateStr);
+  }
+
+  formatLongDate(dateStr: string): string {
+    const d = new Date(dateStr + 'T12:00:00');
+    return new Intl.DateTimeFormat('es-ES', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }).format(d);
+  }
+
+  formatShortDate(dateStr: string): string {
+    const d = new Date(dateStr + 'T12:00:00');
+    return new Intl.DateTimeFormat('es-ES', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }).format(d);
+  }
+
+  selectedDropdownLabel(): string {
+    const slots = this.selectedSlots();
+    if (slots.length === 1) {
+      return `${this.formatTime(slots[0])} - ${this.formatTime(slots[0] + this.durationHours())}`;
+    }
+    return 'Selecciona una hora';
+  }
+
+  toggleDropdown(event: Event): void {
+    event.stopPropagation();
+    this.dropdownOpen.update(v => !v);
+  }
+
+  onDropdownSelect(time: number): void {
+    this.selectSlot(time);
+    this.dropdownOpen.set(false);
+  }
+
+  @HostListener('document:click')
+  onDocumentClick(): void {
+    this.dropdownOpen.set(false);
+  }
+
+  prevDay(): void {
+    if (!this.canGoPrevDay()) return;
+    const current = new Date(this.selectedDate());
+    current.setDate(current.getDate() - 1);
+    this.onDateChange(this.toDateInputValue(current));
+  }
+
+  nextDay(): void {
+    if (!this.canGoNextDay()) return;
+    const current = new Date(this.selectedDate());
+    current.setDate(current.getDate() + 1);
+    this.onDateChange(this.toDateInputValue(current));
+  }
+
+  canGoPrevDay(): boolean {
+    const current = new Date(this.selectedDate());
+    const today = new Date(this.getTodayString());
+    current.setHours(0, 0, 0, 0);
+    return current > today;
+  }
+
+  canGoNextDay(): boolean {
+    const current = new Date(this.selectedDate());
+    const max = new Date();
+    max.setMonth(max.getMonth() + 3);
+    max.setHours(0, 0, 0, 0);
+    current.setHours(0, 0, 0, 0);
+    return current < max;
+  }
+
+  private toDateInputValue(date: Date): string {
+    return this.localDateStr(date);
   }
 }

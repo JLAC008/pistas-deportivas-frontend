@@ -1,0 +1,56 @@
+    <div class="cal">
+      <div class="cal-head">
+        <button class="cal-nav" [class.cal-nav-dis]="!canGoPrev()" [disabled]="!canGoPrev()" (click)="prevMonth()" aria-label="Mes anterior">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 6l-4 4 4 4" />
+          </svg>
+        </button>
+        <div class="cal-title">
+          <span class="cal-month">{{ months[viewMonth()] }}</span>
+          <span class="cal-year">{{ viewYear() }}</span>
+        </div>
+        <button class="cal-nav" [class.cal-nav-dis]="!canGoNext()" [disabled]="!canGoNext()" (click)="nextMonth()" aria-label="Mes siguiente">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8 6l4 4-4 4" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="cal-weekdays">
+        @for (d of weekdays; track d) {
+          <span class="cal-wd">{{ d }}</span>
+        }
+      </div>
+
+      <div class="cal-grid">
+        @for (day of days(); track day.key) {
+          @if (day.empty) {
+            <div class="cal-cell cal-empty"></div>
+          } @else {
+            <button
+              class="cal-cell"
+              [class.cal-today]="day.today"
+              [class.cal-sel]="day.selected"
+              [class.cal-dis]="day.disabled"
+              [disabled]="day.disabled"
+              (click)="pick(day)">
+              <span class="cal-num">{{ day.num }}</span>
+            </button>
+          }
+        }
+      </div>
+
+      @if (selected(); as sel) {
+        <div class="cal-foot">
+          <span class="cal-foot-ico">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="2.5" width="12" height="11.5" rx="1.5" />
+              <path d="M2 6h12" />
+              <path d="M5.5 1v3" />
+              <path d="M10.5 1v3" />
+            </svg>
+          </span>
+          <span class="cal-foot-text">{{ formatFooter(sel) }}</span>
+        </div>
+      }
+    </div>

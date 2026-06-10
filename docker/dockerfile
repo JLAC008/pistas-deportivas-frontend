@@ -1,0 +1,27 @@
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm ci
+
+COPY . .
+
+ARG API_URL
+
+RUN printf "export const environment = {\n  production: true,\n  apiUrl: '%s'\n};\n" "$API_URL" > src/environments/environment.ts
+
+RUN npm run build -- --configuration production
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+RUN npm install -g http-server
+
+COPY --from=builder /app/dist/demo/browser ./dist
+
+EXPOSE 8081
+
+CMD ["http-server", "./dist", "-p", "8081", "-c-1", "--proxy", "http://localhost:8081?"]

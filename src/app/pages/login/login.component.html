@@ -1,0 +1,48 @@
+<section class="auth-page">
+  <div class="auth-card">
+    <div class="auth-header">
+      <h1>Iniciar Sesion</h1>
+      <p>Accede al panel de administracion</p>
+    </div>
+
+    <form class="auth-form" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label for="username">Usuario</label>
+        <input
+          type="text"
+          id="username"
+          class="input"
+          [(ngModel)]="username"
+          name="username"
+          placeholder="admin"
+          required>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Contrasena</label>
+        <input
+          type="password"
+          id="password"
+          class="input"
+          [(ngModel)]="password"
+          name="password"
+          placeholder="Tu contrasena"
+          required>
+      </div>
+
+      @if (error()) {
+        <div class="error-message">
+          {{ error() }}
+        </div>
+      }
+
+      <button type="submit" class="btn btn-primary btn-lg btn-block" [disabled]="isLoading()">
+        @if (isLoading()) {
+          Iniciando sesion...
+        } @else {
+          Iniciar Sesion
+        }
+      </button>
+    </form>
+  </div>
+</section>

@@ -1,0 +1,90 @@
+    <section class="page-header">
+      <div class="page-header-content" style="display: flex; flex-direction: column; align-items: flex-start;">
+        <h1>Alquiler de pistas deportivas</h1>
+        <p style="margin-bottom: 1.5rem;">Elige pista, compara precio y reserva tu horario en un centro deportivo moderno rodeado de naturaleza.</p>
+        <a href="https://maps.app.goo.gl/8Gd6xATfwnCXwPo5A" target="_blank" rel="noopener noreferrer" class="page-kicker" style="margin-bottom: 0;">
+          <img src="resources/google_maps_icon.png" alt="" style="width: 18px; height: 18px; vertical-align: middle; margin-right: 6px;" />
+          Valle Perdido, Murcia
+        </a>
+      </div>
+    </section>
+
+    <section class="filters courts-filters">
+      <div class="filter-group" style="width: 100%;">
+        <!-- Filtros Desktop -->
+        <div class="filter-buttons desktop-only">
+          <button
+            class="btn"
+            [class.btn-primary]="selectedType() === 'all'"
+            [class.btn-outline]="selectedType() !== 'all'"
+            (click)="selectedType.set('all')">
+            Todas
+          </button>
+          @for (type of courtTypes(); track type) {
+            <button
+              class="btn"
+              [class.btn-primary]="selectedType() === type"
+              [class.btn-outline]="selectedType() !== type"
+              (click)="selectedType.set(type)">
+              {{ courtTypeIcons[type] }} {{ type | titlecase }}
+            </button>
+          }
+        </div>
+
+        <!-- Filtro Mobile -->
+        <select class="select filter-sort mobile-only" style="width: 100%;" [value]="selectedType()" (change)="selectedType.set($any($event.target).value)">
+          <option value="all">Todas las pistas</option>
+          @for (type of courtTypes(); track type) {
+            <option [value]="type">{{ courtTypeIcons[type] }} {{ type | titlecase }}</option>
+          }
+        </select>
+      </div>
+    </section>
+
+    <section class="courts-section">
+      <div class="courts-grid">
+        @for (court of filteredCourts(); track court.id) {
+          <a
+            class="court-card"
+            [class.inactive]="!court.isActive"
+            [routerLink]="court.isActive ? ['/pista', courtSlug(court.name)] : null"
+            [attr.aria-disabled]="!court.isActive || null">
+            <div class="court-image">
+              <img
+                [src]="court.imageUrl || 'https://images.pexels.com/photos/209977/pexels-photo-209977.jpeg?auto=compress&cs=tinysrgb&w=800'"
+                [alt]="court.name">
+              <span class="court-type">{{ courtTypeIcons[court.type] }} {{ court.type }}</span>
+              @if (!court.isActive) {
+                <span class="inactive-badge">Inactiva</span>
+              }
+            </div>
+            <div class="court-info">
+              <h3>{{ court.name }}</h3>
+              <p class="court-description">{{ court.description }}</p>
+              <div class="court-amenities">
+                @for (amenity of court.amenities | slice:0:3; track amenity) {
+                  <span class="amenity-tag">{{ amenity }}</span>
+                }
+                @if (court.amenities.length > 3) {
+                  <span class="amenity-more">+{{ court.amenities.length - 3 }}</span>
+                }
+              </div>
+              <div class="court-footer">
+                <div class="court-meta">
+                  <span class="court-price">{{ court.price }}&euro; / {{ court.durationMinutes < 60 ? court.durationMinutes + 'min' : court.durationMinutes === 60 ? '1h' : court.durationMinutes === 90 ? '1h 30min' : '2h' }}</span>
+                </div>
+                @if (court.isActive) {
+                  <span class="btn btn-primary btn-sm">Reservar</span>
+                } @else {
+                  <span class="btn btn-disabled btn-sm">No disponible</span>
+                }
+              </div>
+            </div>
+          </a>
+        } @empty {
+          <div class="no-results">
+            <p>No hay pistas disponibles con los filtros seleccionados</p>
+          </div>
+        }
+      </div>
+    </section>

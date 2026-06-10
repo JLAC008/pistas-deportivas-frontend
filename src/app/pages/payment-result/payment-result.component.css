@@ -1,0 +1,5 @@
+.payment-result-page { display: flex; justify-content: center; align-items: center; min-height: 60vh; }
+.payment-success, .payment-failure { text-align: center; padding: 3rem; background: var(--surface); border-radius: 16px; border: 1px solid var(--border); max-width: 480px; }
+.result-icon { font-size: 4rem; margin-bottom: 1rem; }
+.success-icon { color: #4ade80; }
+.failure-icon { color: #f87171; }
