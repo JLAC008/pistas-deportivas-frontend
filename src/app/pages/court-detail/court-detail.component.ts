@@ -351,7 +351,7 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
       this.reservationService.create({
         courtId: court.id,
         customerName: isOnsite ? 'Presencial' : this.customerName().trim(),
-        customerEmail: isOnsite ? 'presencial@valleperdidosport.com' : this.customerEmail().trim(),
+        customerEmail: this.customerEmail().trim(),
         customerPhone: isOnsite ? '' : this.customerPhone().trim(),
         date: this.selectedDate(),
         startTime: block.startTime,
