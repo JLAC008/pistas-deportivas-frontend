@@ -247,8 +247,8 @@
                         <path d="M9 20v-6h6v6" />
                       </svg>
                       <span>
-                        <strong>Pagar en el local</strong>
-                        <small>Reserva ahora y paga al llegar</small>
+                        <strong>Reserva presencial</strong>
+                        <small>Diríjase a nuestras instalaciones</small>
                       </span>
                     </div>
                   </div>
@@ -328,21 +328,10 @@
                 <div class="onsite-notice">
                   <div class="onsite-notice-icon">i</div>
                   <div>
-                    <strong>Pago en persona</strong>
-                    <p>Deberas acudir a nuestras instalaciones para formalizar el pago en el momento de tu reserva. El equipo te atendera a tu llegada.</p>
+                    <strong>Reservas presenciales</strong>
+                    <p>Para realizar reservas en persona, acuda a nuestras instalaciones y ser&aacute; atendido en recepci&oacute;n.</p>
                   </div>
                 </div>
-
-                <button
-                  class="btn btn-primary btn-lg"
-                  [disabled]="!canBook() || isBooking()"
-                  (click)="makeReservation()">
-                  @if (isBooking()) {
-                    Reservando...
-                  } @else {
-                    Confirmar Reserva{{ selectedSlots().length > 1 ? 's' : '' }}
-                  }
-                </button>
               </div>
             }
 

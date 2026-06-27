@@ -191,7 +191,7 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
 
   canBook = computed(() => {
     if (this.selectedSlots().length === 0) return false;
-    if (this.paymentMethod() === 'ONSITE') return true;
+    if (this.paymentMethod() === 'ONSITE') return false;
     return this.isValidEmail() && this.isValidPhone() && this.customerName().trim().length > 0;
   });
 
@@ -314,8 +314,6 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
 
     this.bookingError.set('');
     this.isBooking.set(true);
-    const isOnsite = this.paymentMethod() === 'ONSITE';
-    const bookingGroup = crypto.randomUUID();
 
     this.courtService.getAvailability(court.id, this.selectedDate()).subscribe({
       next: (fresh) => {
@@ -335,7 +333,7 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
           return;
         }
 
-        this.proceedWithReservation(court, blocks, isOnsite);
+        this.proceedWithReservation(court, blocks);
       },
       error: () => {
         this.isBooking.set(false);
@@ -344,15 +342,15 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
     });
   }
 
-  private proceedWithReservation(court: Court, blocks: {startTime: number; endTime: number}[], isOnsite: boolean): void {
+  private proceedWithReservation(court: Court, blocks: {startTime: number; endTime: number}[]): void {
     const bookingGroup = crypto.randomUUID();
 
     const observables = blocks.map(block =>
       this.reservationService.create({
         courtId: court.id,
-        customerName: isOnsite ? 'Presencial' : this.customerName().trim(),
+        customerName: this.customerName().trim(),
         customerEmail: this.customerEmail().trim(),
-        customerPhone: isOnsite ? '' : this.customerPhone().trim(),
+        customerPhone: this.customerPhone().trim(),
         date: this.selectedDate(),
         startTime: block.startTime,
         endTime: block.endTime,
@@ -367,11 +365,7 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
           reservations.map(r => ({ id: r.id, startTime: r.startTime, endTime: r.endTime }))
         );
         this.isBooking.set(false);
-        if (isOnsite) {
-          this.showSuccess.set(true);
-        } else {
-          this.redirectToPayment();
-        }
+        this.redirectToPayment();
       },
       error: (err) => {
         this.isBooking.set(false);
