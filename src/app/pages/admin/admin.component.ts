@@ -774,7 +774,7 @@ class AdminComponent implements OnInit, AfterViewInit {
       customerPhone: customerPhone.trim() || undefined,
       date: this.scheduleDateFilter(),
       startTime: timeRange.start,
-      paymentMethod: 'ONSITE'
+      paymentMethod: 'ONLINE'
     }).subscribe({
       next: () => {
         this.adminBookingLoading.set(false);
@@ -1072,7 +1072,7 @@ class AdminComponent implements OnInit, AfterViewInit {
       customerPhone: customerPhone.trim() || undefined,
       date: this.scheduleDateFilter(),
       startTime: hour,
-      paymentMethod: 'ONSITE'
+      paymentMethod: 'ONLINE'
     }).subscribe({
       next: () => {
         this.adminBookingLoading.set(false);
