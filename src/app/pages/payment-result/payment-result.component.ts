@@ -1,4 +1,4 @@
-import { Component, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { PaymentService } from '../../services/payment.service';
@@ -11,11 +11,11 @@ import { PaymentService } from '../../services/payment.service';
   styleUrls: ['./payment-result.component.css']
 })
 export class PaymentResultComponent implements OnInit {
+  private readonly paymentService = inject(PaymentService);
+
   success = signal(false);
   loading = signal(true);
   error = signal(false);
-
-  constructor(private readonly paymentService: PaymentService) {}
 
   ngOnInit() {
     const params = new URLSearchParams(window.location.search);

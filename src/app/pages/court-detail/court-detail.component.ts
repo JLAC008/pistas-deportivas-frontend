@@ -131,7 +131,6 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
   });
 
   removeBlock(block: SelectedBlock): void {
-    const duration = this.durationHours();
     this.selectedSlots.update(slots =>
       slots.filter(t => t < block.startTime || t >= block.endTime)
     );
@@ -318,7 +317,6 @@ export class CourtDetailComponent implements OnInit, AfterViewInit {
     this.courtService.getAvailability(court.id, this.selectedDate()).subscribe({
       next: (fresh) => {
         const stillAvailable = blocks.every(block => {
-          const duration = court.durationMinutes / 60;
           for (let t = block.startTime; t < block.endTime; t += 0.5) {
             const slot = fresh.slots.find(s => s.time === t);
             if (!slot || !slot.available) return false;
