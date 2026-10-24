@@ -35,5 +35,10 @@
     "tailwindcss": "^4.3.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.60.0"
+  },
+  "overrides": {
+    "@angular/build": {
+      "undici": "7.30.1"
+    }
   }
 }
